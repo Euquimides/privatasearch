@@ -1,10 +1,10 @@
 import { SearchProvider } from '@/context/SearchContext'
+// @ts-ignore
 import './globals.css'
 
-const basePath = process.env.NODE_ENV === 'production' ? '/prodhab-search' : '';
 
 export const metadata = {
-  title: 'Buscador PRODHAB',
+  title: 'PrivataSearch',
   description: 'Buscador de jurisprudencia de protección de datos personales',
 }
 
@@ -16,18 +16,18 @@ export default function RootLayout({
   return (
     <html lang="es">
       <head>
-        {/* Preload the search index - browser downloads immediately */}
+        <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+        {/* Precargar índice de resoluciones */}
         <link
           rel="preload"
-          href={`${basePath}/prodhab-index.json`}
+          href="/indice-resoluciones-prodhab.json"
           as="fetch"
           type="application/json"
           crossOrigin="anonymous"
         />
-        {/* Optional: Also preload with higher priority */}
         <link
           rel="prefetch"
-          href={`${basePath}/prodhab-index.json`}
+          href="/indice-resoluciones-prodhab.json"
         />
       </head>
       <body>
@@ -36,5 +36,5 @@ export default function RootLayout({
         </SearchProvider>
       </body>
     </html>
-  )
+  );
 }

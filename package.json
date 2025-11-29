@@ -1,6 +1,7 @@
 {
-  "name": "prodhab-search",
-  "version": "0.1.0",
+  "name": "privatasearch",
+  "version": "1.0.0",
+  "description": "Buscador de jurisprudencia sobre protección de datos personales de Costa Rica.",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -8,17 +9,18 @@
     "start": "next start"
   },
   "dependencies": {
-    "@radix-ui/react-slot": "^1.2.3",
+    "@radix-ui/react-slot": "^1.2.4",
     "class-variance-authority": "^0.7.1",
     "flexsearch": "^0.8.212",
-    "next": "15.5.4",
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
+    "lucide-react": "^0.555.0",
+    "next": "16.0.5",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
     "react-markdown": "^10.1.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "^24",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "lightningcss": "^1.30.2",

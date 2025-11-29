@@ -1,160 +1,93 @@
-'use client'
+"use client";
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import FlexSearch from 'flexsearch';
 
-import React, { createContext, useContext, useEffect, useState } from 'react'
-import * as FlexSearch from 'flexsearch'
-
-interface SearchIndexContextType {
-  index: FlexSearch.Index | null
-  searchData: any[] | null
-  isLoading: boolean
-  lastSearchQuery: string | null
-  setLastSearchQuery: (query: string | null) => void
+export interface ResolutionItem {
+  id: string;
+  titulo: string;
+  texto: string;
+  metadatos: {
+    expediente?: string;
+    resolucion?: string;
+    fecha?: string;
+    archivo_origen?: string;
+  };
+  vector?: number[];
 }
 
-const SearchIndexContext = createContext<SearchIndexContextType>({
-  index: null,
-  searchData: null,
-  isLoading: true,
-  lastSearchQuery: null,
-  setLastSearchQuery: () => {}
-})
+interface SearchContextType {
+  indexReady: boolean;
+  searchResults: ResolutionItem[];
+  lastSearchQuery: string | null;
+  setLastSearchQuery: (q: string | null) => void;
+  search: (query: string, limit?: number) => void;
+  allItems: ResolutionItem[];
+}
 
-const basePath = process.env.NODE_ENV === 'production' ? '/prodhab-search' : '';
-const CACHE_NAME = 'prodhab-search-v1';
-const INDEX_URL = `${basePath}/prodhab-index.json`;
-const CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
+const SearchContext = createContext<SearchContextType | undefined>(undefined);
 
 export function useSearchIndex() {
-  return useContext(SearchIndexContext)
+  const ctx = useContext(SearchContext);
+  if (!ctx) throw new Error('SearchContext not found');
+  return ctx;
 }
 
-interface SearchProviderProps {
-  children: React.ReactNode
-}
+export const SearchProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [indexReady, setIndexReady] = useState(false);
+  const [searchResults, setSearchResults] = useState<ResolutionItem[]>([]);
+  const [lastSearchQuery, setLastSearchQuery] = useState<string | null>(null);
+  const [allItems, setAllItems] = useState<ResolutionItem[]>([]);
+  const indexRef = useRef<any>(null);
 
-export function SearchProvider({ children }: SearchProviderProps) {
-  const [index, setIndex] = useState<FlexSearch.Index | null>(null)
-  const [searchData, setSearchData] = useState<any[] | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [lastSearchQuery, setLastSearchQuery] = useState<string | null>(null)
-
+  // Cargar datos e inicializar índice FlexSearch
   useEffect(() => {
-    const preloadWithCache = async () => {
-      console.log('[SearchContext] Starting smart preload...')
-      const startTime = performance.now()
-
-      try {
-        let rawSearchData;
-        let cacheHit = false;
-
-        // Try to get from Cache API first
-        if ('caches' in window) {
-          const cache = await caches.open(CACHE_NAME);
-          const cachedResponse = await cache.match(INDEX_URL);
-
-          if (cachedResponse) {
-            const cacheDate = cachedResponse.headers.get('X-Cache-Date');
-            const isCacheValid = cacheDate && 
-              (Date.now() - new Date(cacheDate).getTime()) < CACHE_DURATION;
-
-            if (isCacheValid) {
-              console.log('[SearchContext] ✓ Using cached index');
-              rawSearchData = await cachedResponse.json();
-              cacheHit = true;
-            } else {
-              console.log('[SearchContext] Cache expired, fetching fresh data');
-            }
-          }
+    async function loadData() {
+      if (indexRef.current) return;
+      const res = await fetch('/indice-resoluciones-prodhab.json');
+      const json = await res.json();
+      const items: ResolutionItem[] = Array.isArray(json.datos)
+        ? json.datos.filter((d: any) => d && d.id && d.titulo && d.texto)
+        : [];
+      setAllItems(items);
+      // Construir índice de documentos FlexSearch
+      const idx = new FlexSearch.Document({
+        tokenize: 'forward',
+        cache: true,
+        document: {
+          id: 'id',
+          index: ['titulo', 'texto']
         }
-
-        // If not in cache or cache expired, fetch from network
-        if (!rawSearchData) {
-          console.log('[SearchContext] Fetching from network...');
-          
-          // Start the fetch early (preload)
-          const fetchPromise = fetch(INDEX_URL);
-          
-          // Show a minimal UI while loading
-          const response = await fetchPromise;
-          rawSearchData = await response.json();
-
-          // Cache the response
-          if ('caches' in window) {
-            const cache = await caches.open(CACHE_NAME);
-            
-            // Create a new response with cache date header
-            const responseToCache = new Response(JSON.stringify(rawSearchData), {
-              headers: {
-                'Content-Type': 'application/json',
-                'X-Cache-Date': new Date().toISOString()
-              }
-            });
-            
-            await cache.put(INDEX_URL, responseToCache);
-            console.log('[SearchContext] ✓ Cached for future use');
-          }
-        }
-
-        // Build the index
-        console.log('[SearchContext] Building FlexSearch index...');
-        const searchIndex = new FlexSearch.Index({
-          preset: 'performance',
-          tokenize: 'forward',    
-          resolution: 9,
-          cache: 100, // Cache up to 100 recent searches
-          fastupdate: true,
-          encode: (str: string) => {
-            return str
-              .toLowerCase()
-              .replace(/[áàäâã]/g, 'a')
-              .replace(/[éèëê]/g, 'e')
-              .replace(/[íìïî]/g, 'i')
-              .replace(/[óòöôõ]/g, 'o')
-              .replace(/[úùüû]/g, 'u')
-              .replace(/ñ/g, 'n')
-              .split(/[^a-z0-9]+/)
-          }
-        })
-
-        // Build index with progress indication
-        const totalItems = rawSearchData.length;
-        const batchSize = 100;
-        
-        for (let i = 0; i < totalItems; i += batchSize) {
-          const batch = rawSearchData.slice(i, Math.min(i + batchSize, totalItems));
-          batch.forEach((item: any, batchIdx: number) => {
-            searchIndex.add(i + batchIdx, item.content || '');
-          });
-          
-          // Allow UI to update
-          if (i % 500 === 0) {
-            await new Promise(resolve => setTimeout(resolve, 0));
-          }
-        }
-
-        const endTime = performance.now();
-        console.log(`[SearchContext] ✓ Ready in ${(endTime - startTime).toFixed(2)}ms`);
-        console.log(`[SearchContext] Indexed ${rawSearchData.length} items`);
-        console.log(`[SearchContext] Cache: ${cacheHit ? 'HIT' : 'MISS'}`);
-
-        setIndex(searchIndex)
-        setSearchData(rawSearchData)
-        setIsLoading(false)
-
-      } catch (error) {
-        console.error('[SearchContext] Failed to preload:', error)
-        setIsLoading(false)
-      }
+      });
+      items.forEach(item => idx.add({
+        id: item.id,
+        titulo: item.titulo,
+        texto: item.texto
+      }));
+      indexRef.current = idx;
+      setIndexReady(true);
     }
+    loadData();
+  }, []);
 
-    preloadWithCache()
-  }, [])
+  // Función de búsqueda
+  const search = useCallback((query: string, limit: number = 10) => {
+    if (!indexRef.current || !query) {
+      setSearchResults([]);
+      return;
+    }
+    // La búsqueda de documentos FlexSearch devuelve un array de objetos con el campo result
+    let results = indexRef.current.search(query, { limit });
+    if (Array.isArray(results)) {
+      results = results.flatMap((r: any) => r.result || []);
+    }
+    // Mapear ids a items
+    const found = allItems.filter(item => results.includes(item.id));
+    setSearchResults(found);
+  }, [allItems]);
 
   return (
-    <SearchIndexContext.Provider
-      value={{ index, searchData, isLoading, lastSearchQuery, setLastSearchQuery }}
-    >
+    <SearchContext.Provider value={{ indexReady, searchResults, lastSearchQuery, setLastSearchQuery, search, allItems }}>
       {children}
-    </SearchIndexContext.Provider>
-  )
-}
+    </SearchContext.Provider>
+  );
+};
