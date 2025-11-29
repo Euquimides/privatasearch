@@ -1,349 +1,270 @@
-'use client'
-
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { useSearchIndex } from '@/context/SearchContext'
+import React, { useState } from "react";
+import { useSearchIndex, ResolutionItem } from "@/context/SearchContext";
+import { findMostSimilar } from "@/utils/semanticSimilarity";
+import { RelatedResolutions } from "./RelatedResolutions";
+import { FileText, Calendar, Hash, ChevronRight, Sparkles, Download } from "lucide-react";
 
 interface SearchResultsProps {
-  query: string
-  limit?: number
+  query: string;
+  limit: number;
+  similarityThreshold: number;
+  relatedLimit: number;
+  filteredItems: ResolutionItem[];
 }
 
-interface SearchItem {
-  id?: string
-  title: string
-  slug: string
-  content: string  // Display content (readable_content)
-  rawContent: string // Raw content for processing (no formatting)
-  raw_content?: string // Markdown formatted content
-  excerpt?: string
-  date?: string
-  description?: string
-  expediente?: string
-  resolucion?: string
-  body?: {
-    raw: string
-    code: string
-  }
-}
+export function SearchResults({
+  query,
+  limit,
+  similarityThreshold,
+  relatedLimit,
+  filteredItems,
+}: SearchResultsProps) {
+  const { indexReady } = useSearchIndex();
+  const [expandedResults, setExpandedResults] = useState<Set<string>>(
+    new Set()
+  );
 
-const basePath = process.env.NODE_ENV === 'production' ? '/prodhab-search' : '';
+  const searchResults = React.useMemo(() => {
+    if (!query) return [];
+    const lowerQuery = query.toLowerCase();
+    return filteredItems
+      .filter(
+        (item) =>
+          item.titulo.toLowerCase().includes(lowerQuery) ||
+          item.texto.toLowerCase().includes(lowerQuery)
+      )
+      .slice(0, limit);
+  }, [query, filteredItems, limit]);
 
-export function SearchResults({ query, limit = 25 }: SearchResultsProps) {
-  const [results, setResults] = useState<SearchItem[]>([])
-  const { index, searchData, isLoading: indexLoading } = useSearchIndex()
-  const [isLoading, setIsLoading] = useState(true)
-
-  // Effect to handle initial search when component mounts with a query
-  useEffect(() => {
-    if (index && searchData && query && !indexLoading) {
-      console.log('Performing initial search with preloaded index for:', query);
-      const startTime = performance.now();
-      
-      // Use the preloaded index to perform the search
-      const searchResults = index.search(query, limit); // Use the provided limit
-      
-      const endTime = performance.now();
-      console.log(`Search completed in ${(endTime - startTime).toFixed(2)}ms`);
-      console.log('Search results:', searchResults);
-      
-      // Process search results
-      if (searchResults.length > 0) {
-        // Normalize the search data to our expected format
-        // Always use readable_content for display
-        const normalizedData: SearchItem[] = searchData.map((item: any) => ({
-          id: item.id || '',
-          title: item.title || 'Untitled',
-          slug: item.slug || '',
-          content: typeof item.readable_content === 'string' ? item.readable_content.replace(/\[object Object\]/g, '') : JSON.stringify(item.readable_content).replace(/\[object Object\]/g, ''),
-          rawContent: typeof item.content === 'string' ? item.content.replace(/\[object Object\]/g, '') : JSON.stringify(item.content).replace(/\[object Object\]/g, ''),
-          raw_content: item.raw_content || '', // Include raw_content field for markdown rendering
-          date: item.date || '',
-          description: item.description || '',
-          expediente: item.expediente || 'UNKNOWN',
-          resolucion: item.resolucion || 'UNKNOWN',
-          body: item.body || null
-        }));
-        
-        // Map search results to actual items
-        const foundItems = searchResults.map((idx: string | number) => normalizedData[Number(idx)]);
-        console.log('Found items:', foundItems.length);
-        setResults(foundItems);
+  const toggleExpanded = (id: string) => {
+    setExpandedResults((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
       } else {
-        setResults([]);
+        next.add(id);
       }
-      
-      setIsLoading(false);
-    } else if (!indexLoading) {
-      setIsLoading(false);
-    }
-  }, [index, searchData, indexLoading, query, limit])
+      return next;
+    });
+  };
 
-  // Effect to handle query changes and update search results
-  useEffect(() => {
-    // When query changes, perform search if index is loaded
-    if (index && searchData && query) {
-      setIsLoading(true);
-      console.log('Searching for:', query);
-      const startTime = performance.now();
-      
-      // Split query into terms for better matching
-      const queryTerms = query.toLowerCase().split(/\s+/).filter(term => term.length > 1);
-      
-      // Get main search results
-      const searchResults = index.search(query, limit); // Use the provided limit
-      
-      const combinedResults = searchResults;
-      
-      const endTime = performance.now();
-      console.log(`Search completed in ${(endTime - startTime).toFixed(2)}ms`);
-      console.log('Search results:', combinedResults.length);
-      
-      // Normalize the search data to our expected format
-      // Always use readable_content for display
-        const normalizedData: SearchItem[] = searchData.map((item: any) => ({
-          id: item.id || '',
-          title: item.title || 'Untitled',
-          slug: item.slug || '',
-          content: typeof item.readable_content === 'string' ? item.readable_content.replace(/\[object Object\]/g, '') : JSON.stringify(item.readable_content).replace(/\[object Object\]/g, ''), // Display content always uses readable_content when available
-          rawContent: typeof item.content === 'string' ? item.content.replace(/\[object Object\]/g, '') : JSON.stringify(item.content).replace(/\[object Object\]/g, ''), // Keep raw content for reference
-          raw_content: item.raw_content || '', // Include raw_content field for markdown rendering
-          date: item.date || '',
-          description: item.description || '',
-          expediente: item.expediente || 'UNKNOWN',
-          resolucion: item.resolucion || 'UNKNOWN',
-          body: item.body || null
-        }));      if (combinedResults.length > 0) {
-        // Calculate relevance scores for sorting results
-        const scoredItems = combinedResults.map((idx: string | number) => {
-          const itemData = normalizedData[Number(idx)];
-          let score = 0;
-          
-          // Score based on field matches (title gets higher weight)
-          const content = itemData.content?.toLowerCase() || '';
-          const title = itemData.title?.toLowerCase() || '';
-          
-          queryTerms.forEach(term => {
-            // Title matches are worth more
-            if (title.includes(term)) score += 10;
-            
-            // Content matches
-            if (content.includes(term)) {
-              score += 5;
-              // Bonus for exact phrase match in content
-              if (content.includes(query.toLowerCase())) score += 15;
-            }
-            
-            // Recent documents bonus (if date exists)
-            if (itemData.date) {
-              try {
-                const itemDate = new Date(itemData.date);
-                const currentDate = new Date();
-                const monthsDiff = (currentDate.getFullYear() - itemDate.getFullYear()) * 12 + 
-                                   currentDate.getMonth() - itemDate.getMonth();
-                // Documents less than 6 months old get a boost
-                if (monthsDiff < 6) score += 3;
-              } catch (e) {
-                // Skip date scoring if date is invalid
-              }
-            }
-          });
-          
-          return { idx, score, itemData };
-        });
-        
-        // Sort by score (highest first)
-        scoredItems.sort((a, b) => b.score - a.score);
-        
-        const foundItems = scoredItems.map(({ itemData }) => {
-          // Use the itemData from the scored results
-          const item = itemData;
-          
-          // Create a highlighted excerpt from the content
-          let excerpt = '';
-          
-          // Use description if available, otherwise use content directly
-          if (item.description && typeof item.description === 'string') {
-            excerpt = item.description;
-          } else {
-            // Always use readable content for display
-            const contentText = typeof item.content === 'string' ? item.content : 
-                               (item.content ? JSON.stringify(item.content) : '');
-                               
-            // But use raw content for finding the position (since that's what was indexed)
-            const rawText = item.rawContent || '';
-            const queryPositionRaw = rawText.toLowerCase().indexOf(query.toLowerCase());
-            // Find the position in the readable content
-            const queryPosition = contentText.toLowerCase().indexOf(query.toLowerCase());
-            
-            // If we found a match in either content type
-            if (queryPosition !== -1 || queryPositionRaw !== -1) {
-              let start, end;
-              
-              if (queryPosition !== -1) {
-                // Prefer using the position from readable content if found
-                start = Math.max(0, queryPosition - 100);
-                end = Math.min(contentText.length, queryPosition + 100);
-              } else if (queryPositionRaw !== -1 && contentText.length > 0) {
-                // If we only found it in raw content, make an estimation for readable content position
-                // This is an approximation since the formatting will be different
-                const positionRatio = queryPositionRaw / rawText.length;
-                const estimatedPos = Math.floor(positionRatio * contentText.length);
-                start = Math.max(0, estimatedPos - 100);
-                end = Math.min(contentText.length, estimatedPos + 100);
-              } else {
-                // Fallback to beginning of content
-                start = 0;
-                end = Math.min(contentText.length, 200);
-              }
-              
-              // Extract the excerpt
-              excerpt = contentText.slice(start, end);
-              
-              // Add ellipses if we're not at the beginning/end
-              if (start > 0) excerpt = '...' + excerpt;
-              if (end < contentText.length) excerpt = excerpt + '...';
-              
-              // Highlight the search term with a yellow background using HTML
-              const queryRegex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-              excerpt = excerpt.replace(queryRegex, '<span class="bg-yellow-200 dark:bg-yellow-800">$1</span>');
-            } else {
-              // If no direct match is found in the text, just take the first part
-              excerpt = contentText.slice(0, 200) + '...';
-            }
-          }
-          
-          return { 
-            ...item, 
-            excerpt 
-          };
-        });
-        
-        setResults(foundItems);
-      } else {
-        setResults([]);
-      }
-      
-      setIsLoading(false);
-    } else {
-      setIsLoading(false);
-    }
-  }, [query, index, searchData, limit])
-
-  if (isLoading || indexLoading) {
+  if (!indexReady) {
     return (
-      <div className="my-8 flex justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-900 border-t-transparent dark:border-gray-200 dark:border-t-transparent"></div>
-        <span className="ml-3 text-sm text-gray-600 dark:text-gray-400">
-          {indexLoading ? 'Cargando índice de búsqueda...' : 'Buscando...'}
-        </span>
-      </div>
-    )
-  }
-
-  if (results.length === 0 && query) {
-    return (
-      <div className="my-16 text-center">
-        <h2 className="mb-4 text-xl font-semibold">No se encontraron resultados</h2>
-        <p className="text-gray-600 dark:text-gray-400">
-          No se encontraron resultados para &quot;{query}&quot;.
+      <div className="flex flex-col items-center justify-center rounded-lg border border-neutral-200 bg-white p-12 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+        <div className="relative mb-6">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-neutral-200 border-t-blue-600 dark:border-neutral-700 dark:border-t-blue-400"></div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Sparkles className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+          </div>
+        </div>
+        <p className="text-base font-medium text-neutral-700 dark:text-neutral-300">
+          Preparando búsqueda
+        </p>
+        <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+          Cargando índice...
         </p>
       </div>
-    )
+    );
+  }
+
+  if (!query) {
+    return (
+      <div className="rounded-lg border border-neutral-200 bg-gradient-to-br from-blue-50 to-neutral-50 p-12 text-center dark:border-neutral-800 dark:from-neutral-900 dark:to-neutral-950">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
+          <FileText className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+        </div>
+        <h3 className="mb-2 text-lg font-semibold text-neutral-900 dark:text-neutral-100">
+          Comienza tu búsqueda
+        </h3>
+        <p className="text-sm text-neutral-600 dark:text-neutral-400">
+          Ingresa términos de búsqueda para encontrar resoluciones relevantes
+        </p>
+      </div>
+    );
+  }
+
+  if (searchResults.length === 0) {
+    return (
+      <div className="rounded-lg border border-neutral-200 bg-white p-12 text-center shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800">
+          <svg
+            className="h-8 w-8 text-neutral-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+        </div>
+        <h3 className="mb-2 text-lg font-semibold text-neutral-900 dark:text-neutral-100">
+          No se encontraron resultados
+        </h3>
+        <p className="mb-1 text-neutral-600 dark:text-neutral-400">
+          No hay coincidencias para{" "}
+          <span className="font-semibold">"{query}"</span>
+        </p>
+        <p className="text-sm text-neutral-500 dark:text-neutral-500">
+          Intenta con otros términos o ajusta los filtros de búsqueda
+        </p>
+      </div>
+    );
   }
 
   return (
-    <div className="my-8 space-y-8">
-      {query && results.length > 0 && (
-        <div className="mb-6">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Se encontraron {results.length} resultados para &quot;{query}&quot;
-          </p>
+    <div className="space-y-4">
+      {/* Sumario de Resultados */}
+      <div className="flex items-center justify-between rounded-lg border border-neutral-200 bg-gradient-to-r from-blue-50 to-white p-4 shadow-sm dark:border-neutral-800 dark:from-neutral-900 dark:to-neutral-950">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-white shadow-sm">
+            <span className="text-lg font-bold">{searchResults.length}</span>
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+              {searchResults.length === 1
+                ? "Resultado encontrado"
+                : "Resultados encontrados"}
+            </p>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400">
+              Búsqueda: "{query}"
+            </p>
+          </div>
         </div>
-      )}
-      
-      {results.map((result, idx) => (
-        <article key={idx} className="rounded-lg border border-gray-200 p-6 transition-shadow hover:shadow-md dark:border-gray-700 dark:hover:shadow-lg dark:hover:shadow-black/30">
-          <div className="mb-4 flex flex-wrap gap-2">
-            {result.expediente && result.expediente !== 'UNKNOWN' && (
-              <span className="inline-flex items-center rounded-md bg-blue-100 px-2.5 py-0.5 text-sm font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-                Expediente: {result.expediente}
-              </span>
-            )}
-            {result.resolucion && result.resolucion !== 'UNKNOWN' && (
-              <span className="inline-flex items-center rounded-md bg-green-100 px-2.5 py-0.5 text-sm font-medium text-green-800 dark:bg-green-900 dark:text-green-300">
-                Resolución: {result.resolucion}
-              </span>
-            )}
+        {/* Botones Expandir/Colapsar Todos */}
+        {searchResults.length > 0 && (
+          <div className="flex gap-2">
+            <button
+              onClick={() => setExpandedResults(new Set(searchResults.map((item) => item.id)))}
+              className="rounded-md border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50"
+            >
+              Ver todos
+            </button>
+            <button
+              onClick={() => setExpandedResults(new Set())}
+              className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-200 dark:border-neutral-700 dark:bg-neutral-900/30 dark:text-neutral-300 dark:hover:bg-neutral-800"
+            >
+              Colapsar todos
+            </button>
           </div>
-          
-          {result.excerpt && (
-            <div className="prose-sm prose mb-4 text-gray-600 dark:text-gray-300">
-              <div dangerouslySetInnerHTML={{ __html: result.excerpt.replace(/\[object Object\]/g, '') }} />
-            </div>
-          )}
-          
-          {result.date && (
-            <div className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-              {result.date}
-            </div>
-          )}
-          
-          <div className="mt-4">
-            {result.expediente ? (
-              <button
-                className="inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-blue-800 dark:hover:bg-blue-700"
-                onClick={() => {
-                  // Check if raw_content is already available in the search result
-                  if (result.raw_content) {
-                    localStorage.setItem('fullMarkdown', result.raw_content);
-                    localStorage.setItem('fullTitle', result.title || '')
-                    localStorage.setItem('fullExpediente', result.expediente || '')
-                    localStorage.setItem('fullResolucion', result.resolucion || '')
-                    localStorage.setItem('fullDate', result.date || '')
-                    window.location.href = `${basePath}/jurisprudencia/ver`
-                  } else {
-                    // Fallback: fetch raw_content from the index file
-                    fetch(`${basePath}/prodhab-index.json`)
-                      .then(response => response.json())
-                      .then(data => {
-                        const item = data.find((item: { id: string | undefined }) => item.id === result.id);
-                        if (item && item.raw_content) {
-                          localStorage.setItem('fullMarkdown', item.raw_content);
-                        } else {
-                          localStorage.setItem('fullMarkdown', result.rawContent || '');
-                        }
-                        localStorage.setItem('fullTitle', result.title || '')
-                        localStorage.setItem('fullExpediente', result.expediente || '')
-                        localStorage.setItem('fullResolucion', result.resolucion || '')
-                        localStorage.setItem('fullDate', result.date || '')
-                        window.location.href = `${basePath}/jurisprudencia/ver`
-                      })
-                      .catch(error => {
-                        console.error('Error fetching raw_content:', error);
-                        localStorage.setItem('fullMarkdown', result.rawContent || '')
-                        localStorage.setItem('fullTitle', result.title || '')
-                        localStorage.setItem('fullExpediente', result.expediente || '')
-                        localStorage.setItem('fullResolucion', result.resolucion || '')
-                        localStorage.setItem('fullDate', result.date || '')
-                        window.location.href = `${basePath}/jurisprudencia/ver`
-                      });
-                  }
-                }}
-              >
-                Ver Texto Completo
-              </button>
-            ) : (
-              <Link 
-                href={`/posts/${result.slug}`}
-                className="inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-blue-800 dark:hover:bg-blue-700"
-              >
-                Ver Artículo Completo
-              </Link>
-            )}
-          </div>
-        </article>
-      ))}
+        )}
+      </div>
+
+      {/* Cuadrícula de Resultados */}
+      <div className="space-y-4">
+        {searchResults.map((item, index) => {
+          const isExpanded = expandedResults.has(item.id);
+
+          let related: { item: ResolutionItem; similarity: number }[] = [];
+          if (item.vector) {
+            related = findMostSimilar(
+              item.vector,
+              filteredItems.filter((i) => i.id !== item.id),
+              relatedLimit,
+              0.6,
+              similarityThreshold
+            );
+          }
+
+          return (
+            <article
+              key={item.id}
+              className="group relative overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm transition-all hover:shadow-lg dark:border-neutral-800 dark:bg-neutral-950"
+            >
+              {/* Acento de gradiente */}
+              <div className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-blue-500 to-green-500"></div>
+
+              <div className="p-6 pl-8">
+                {/* Encabezado con etiquetas */}
+                <div className="mb-4 flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 text-sm font-bold text-white shadow-sm">
+                      {index + 1}
+                    </span>
+                  </div>
+                  
+                  {/* Botón de descarga minimalista - Arriba a la derecha */}
+                  {item.metadatos?.archivo_origen && (
+                    <a
+                      href={item.metadatos.archivo_origen}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 transition-colors hover:bg-neutral-50 hover:border-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-750 dark:hover:border-neutral-600"
+                      title="Descargar Resolución"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">Descargar</span>
+                    </a>
+                  )}
+                </div>
+                
+                {/* Etiquetas de Metadatos */}
+                <div className="mb-4 flex flex-wrap gap-2">
+                  {item.metadatos?.expediente && (
+                    <span className="rounded bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
+                      Exp: {item.metadatos.expediente}
+                    </span>
+                  )}
+                  {item.metadatos?.resolucion && (
+                    <span className="rounded bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/50 dark:text-green-300">
+                      Res: {item.metadatos.resolucion}
+                    </span>
+                  )}
+                  {item.metadatos?.fecha && (
+                    <span className="rounded bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 flex items-center gap-1.5">
+                      <Calendar className="h-3 w-3" />
+                      {item.metadatos.fecha}
+                    </span>
+                  )}
+                </div>
+
+                <div className="mb-4 text-neutral-700 dark:text-neutral-300">
+                  <p
+                    className={`leading-relaxed ${
+                      !isExpanded ? "line-clamp-3" : ""
+                    }`}
+                  >
+                    {isExpanded ? item.texto : item.texto.slice(0, 300)}
+                    {!isExpanded && item.texto.length > 300 && "..."}
+                  </p>
+                  {item.texto.length > 300 && (
+                    <button
+                      onClick={() => toggleExpanded(item.id)}
+                      className="mt-2 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                    >
+                      {isExpanded ? "Ver menos" : "Ver más"}
+                    </button>
+                  )}
+                </div>
+
+                {/* Resoluciones relacionadas con Ver Más/Ver Menos */}
+                {related.length > 0 && (
+                  <div className="mt-6 border-t border-neutral-100 pt-6 dark:border-neutral-800">
+                    <RelatedResolutions
+                      items={related.map((r) => ({
+                        id: r.item.id,
+                        titulo: r.item.titulo,
+                        expediente: r.item.metadatos?.expediente,
+                        resolucion: r.item.metadatos?.resolucion,
+                        date: r.item.metadatos?.fecha,
+                        similarity: r.similarity,
+                        texto: r.item.texto,
+                        archivo_origen: r.item.metadatos?.archivo_origen,
+                      }))}
+                      minSimilarity={similarityThreshold}
+                      maxItems={relatedLimit}
+                      showVisualization={true}
+                    />
+                  </div>
+                )}
+              </div>
+            </article>
+          );
+        })}
+      </div>
     </div>
-  )
+  );
 }

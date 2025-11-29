@@ -1,6 +1,11 @@
-# Buscador de Jurisprudencia PRODHAB
 
-Este proyecto es un buscador textual de resoluciones sobre protección de datos personales de la PRODHAB, desarrollado con Next.js y FlexSearch. Permite realizar búsquedas rápidas sobre el contenido de las resoluciones emitidas hasta hoy. Este proyecto no tiene conexión a base de datos alguna.
+<p align="center">
+	<img src="public/privatasearch_logo.png" alt="PrivataSearch Logo" width="120" />
+</p>
+
+# PrivataSearch: Buscador De Resoluciones Sobre Protección De Datos Personales En Costa Rica
+
+Este proyecto es un buscador textual de resoluciones sobre protección de datos personales en Costa Rica, en específico, de la Agencia de Protección de datos de los Habitantes (PRODHAB). Permite realizar búsquedas rápidas sobre el contenido de las resoluciones emitidas hasta hoy. Este proyecto no tiene conexión a base de datos alguna, sino que se construyo sobre un dataset reorganizado y creado a partir de las resoluciones despersonalizadas, pensando en principios de datos abiertos según legislación costarricense. 
 
 ## Instalación y desarrollo local
 
@@ -26,7 +31,7 @@ El proyecto está configurado para exportar el sitio como estático y desplegarl
 ### Exportar el sitio manualmente
 ```bash
 npm run build
-npx next export
+npx serve .out
 ```
 Los archivos estáticos se generan en la carpeta `out`.
 
