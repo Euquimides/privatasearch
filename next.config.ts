@@ -3,6 +3,7 @@
  */
 
 const isProd = process.env.NODE_ENV === 'production';
+const isCustomDomain = process.env.CUSTOM_DOMAIN === 'true';
 const nextConfig = {
     trailingSlash: true,
     output: 'export',
@@ -10,7 +11,7 @@ const nextConfig = {
     images: {
         unoptimized: true,
     },
-    basePath: isProd ? '/privatasearch' : '',
+    basePath: isProd && !isCustomDomain ? '/privatasearch' : '',
 };
 
 export default nextConfig;
