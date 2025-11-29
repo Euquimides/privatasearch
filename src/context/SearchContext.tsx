@@ -43,7 +43,7 @@ export const SearchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   useEffect(() => {
     async function loadData() {
       if (indexRef.current) return;
-      const res = await fetch('/indice-resoluciones-prodhab.json');
+      const res = await fetch('/privatasearch/indice-resoluciones-prodhab.json');
       const json = await res.json();
       const items: ResolutionItem[] = Array.isArray(json.datos)
         ? json.datos.filter((d: any) => d && d.id && d.titulo && d.texto)
