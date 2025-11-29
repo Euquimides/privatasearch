@@ -20,14 +20,14 @@ export default function RootLayout({
         {/* Precargar índice de resoluciones */}
         <link
           rel="preload"
-          href="/privatasearch/indice-resoluciones-prodhab.json"
+          href="/indice-resoluciones-prodhab.json"
           as="fetch"
           type="application/json"
           crossOrigin="anonymous"
         />
         <link
           rel="prefetch"
-          href="/privatasearch/indice-resoluciones-prodhab.json"
+          href="/indice-resoluciones-prodhab.json"
         />
       </head>
       <body>

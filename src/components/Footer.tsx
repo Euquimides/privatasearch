@@ -1,5 +1,5 @@
 export default function Footer() {
-  const basePath = process.env.NODE_ENV === 'production' ? '/privatasearch' : '';
+  // For custom domain, logo should be at root
 
   return (
     <footer className="border-t border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950">
@@ -10,7 +10,7 @@ export default function Footer() {
           </p>
           <div className="flex items-center gap-2">
             <a href="https://www.vasquezdrexler.abogado/">
-              <img src={`${basePath}/logo.png`} alt="Logo" style={{ height: '100px' }} />
+              <img src="/logo.png" alt="Logo" style={{ height: '100px' }} />
             </a>
           </div>
           <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-500">
