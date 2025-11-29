@@ -61,9 +61,9 @@ export function RelatedResolutions({
             </span>
           </h3>
           {showVisualization && (
-            <div className="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-xs text-neutral-500 dark:text-neutral-400">
               <span>Similitud:</span>
-              <div className="flex items-center gap-1">
+              <div className="flex flex-wrap items-center gap-1">
                 <div className="h-2 w-2 rounded-full bg-green-500"></div>
                 <span className="text-[10px]">Alta</span>
                 <div className="ml-2 h-2 w-2 rounded-full bg-blue-500"></div>
