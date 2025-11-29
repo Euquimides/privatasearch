@@ -9,7 +9,7 @@ export default function SearchPage() {
         {/* Header */}
         <div className="mb-12 md:mb-16 flex flex-col items-center">
           <img
-            src="/privatasearch_logo.png"
+            src="/privatasearch/privatasearch_logo.png"
             alt="Privatasearch Logo"
             className="mb-6"
             style={{ width: '120px', height: 'auto', minWidth: '96px' }}
