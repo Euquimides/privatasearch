@@ -40,7 +40,7 @@ Los archivos estáticos se generan en la carpeta `out`.
 - `src/app/` — Páginas principales y layout.
 - `src/components/` — Componentes reutilizables (buscador, resultados, UI).
 - `src/context/` — Contexto de búsqueda y carga del índice.
-- `public/prodhab-index.json` — Índice de resoluciones para búsqueda.
+- `public/indice-resoluciones-prodhab.json` — Índice de resoluciones para búsqueda.
 
 ## Tecnologías utilizadas
 - [Next.js](https://nextjs.org/)

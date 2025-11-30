@@ -13,9 +13,17 @@ export default function Footer() {
               <img src="/logo.png" alt="Logo" style={{ height: '100px' }} />
             </a>
           </div>
-          <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-500">
-            © {new Date().getFullYear()} · Licencia MIT
-          </p>
+            <div className="mt-4 flex items-center justify-center gap-2">
+            <p className="text-xs text-neutral-500 dark:text-neutral-500">
+              © {new Date().getFullYear()} · Licencia MIT
+            </p>
+            <a
+              href="/disclaimer"
+              className="text-xs text-neutral-500 hover:underline dark:text-neutral-400"
+            >
+              Descargo de responsabilidad
+            </a>
+            </div>
         </div>
       </div>
     </footer>
