@@ -16,7 +16,7 @@ export default function DisclaimerPage() {
           </p>
           <h3 className="text-2xl font-semibold">Limitación de Responsabilidad</h3>
           <p>
-           PrivataSearch se proporciona "tal cual" sin garantías de ningún tipo, ya sean expresas o implícitas. Los desarrolladores no asumen responsabilidad alguna por errores, omisiones o interpretaciones incorrectas de la información presentada. El usuario entiende que este es un recurso de consulta y no un documento legal vinculante. El uso de este buscador es bajo el propio riesgo del usuario.
+           PrivataSearch se proporciona "tal cual" sin garantías de ningún tipo, ya sean expresas o implícitas. Los desarrolladores no asumen responsabilidad alguna por errores, omisiones o interpretaciones incorrectas de la información presentada. El usuario entiende que esta es una herramienta de consulta y referencia que no acredita en forma alguna, eficacia o validez de las resoluciones que sean accedidas a través de la misma. El uso de este buscador es bajo el propio riesgo del usuario.
           </p>
           <h3 className="text-2xl font-semibold">Privacidad y Datos</h3>
           <p>
