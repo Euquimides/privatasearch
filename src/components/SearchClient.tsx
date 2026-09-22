@@ -158,6 +158,20 @@ export default function SearchClient() {
     yearTo !== null;
   const isSearching = debouncedQuery.length > 0 || hasActiveFilters;
 
+  const activeFilterCount =
+    selectedDescriptores.length +
+    selectedResultados.length +
+    selectedTipos.length +
+    (yearFrom !== null || yearTo !== null ? 1 : 0);
+
+  const clearFilters = useCallback(() => {
+    setSelectedDescriptores([]);
+    setSelectedResultados([]);
+    setSelectedTipos([]);
+    setYearFrom(null);
+    setYearTo(null);
+  }, []);
+
   const dateFilteredResults = useMemo(() => {
     // Sin consulta, los filtros operan sobre el corpus completo
     const base = debouncedQuery ? searchResults : allItems;
@@ -342,7 +356,7 @@ export default function SearchClient() {
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={handleKeyDown}
               onFocus={() => { setShowHistory(true); setActiveHistoryIndex(-1); }}
-              placeholder="Buscar en resoluciones: tema, palabra clave, número…"
+              placeholder="Buscar por tema, palabra clave o número…"
               role="combobox"
               aria-expanded={showHistory && !query && searchHistory.length > 0}
               aria-haspopup="listbox"
@@ -511,6 +525,9 @@ export default function SearchClient() {
               setPage={setPage}
               totalItems={allItems.length}
               onOpenItem={openItem}
+              onExampleQuery={setQuery}
+              onClearFilters={clearFilters}
+              activeFilterCount={activeFilterCount}
             />
           </section>
         </div>

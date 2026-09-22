@@ -1,9 +1,21 @@
 import React, { useState, useCallback } from "react";
-import { useSearchIndex, ResolutionItem, DESCRIPTOR_PATTERNS, DESCRIPTOR_LABELS, RESULTADO_LABELS, RESULTADO_BADGE_CLASSES, TIPO_LABELS } from "@/context/SearchContext";
+import { useSearchIndex, ResolutionItem, ResultadoType, DESCRIPTOR_PATTERNS, RESULTADO_LABELS, RESULTADO_BADGE_CLASSES, TIPO_LABELS } from "@/context/SearchContext";
 import { highlightText, buildQueryPatterns } from "@/utils/highlightText";
-import { ExternalLink, FileText, Search, ClipboardCopy, Check, Share2 } from "lucide-react";
-import Link from "next/link";
+import { FileText, Search, ClipboardCopy, Check } from "lucide-react";
 import { formatCitaCR, fmtFecha } from "@/utils/formatters";
+
+/** Insignia de resultado: pastilla con punto, compartida con el panel de lectura. */
+export function ResultadoBadge({ resultado, className = "" }: { resultado: ResultadoType; className?: string }) {
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${RESULTADO_BADGE_CLASSES[resultado] ?? RESULTADO_BADGE_CLASSES.otro} ${className}`}>
+      <span className="w-1.5 h-1.5 rounded-full bg-current" aria-hidden="true" />
+      {RESULTADO_LABELS[resultado]}
+    </span>
+  );
+}
+
+const ACTION_CLASSES =
+  "inline-flex items-center justify-center gap-1.5 border border-neutral-200/80 bg-white rounded-lg px-3 min-h-11 min-w-11 sm:min-h-9 sm:min-w-9 text-xs font-medium text-neutral-600 hover:border-blue-400 hover:text-blue-600 dark:border-neutral-700/80 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:text-blue-400 transition-colors";
 
 interface ResultCardProps {
   item: ResolutionItem;
@@ -24,107 +36,75 @@ const ResultCard = React.memo(function ResultCard({ item, index, highlight, onOp
   }, [item]);
 
   const resultado = item.metadatos?.resultado;
-  const badgeColor = RESULTADO_BADGE_CLASSES[resultado ?? "otro"] ?? RESULTADO_BADGE_CLASSES.otro;
 
   return (
+    // La tarjeta completa es un atajo para el ratón; el control accesible es el título.
     <article
-      className="group relative bg-white border border-neutral-200/80 rounded-xl transition-all hover:bg-neutral-50 hover:border-neutral-300 hover:-translate-y-px cursor-pointer dark:bg-neutral-900 dark:border-neutral-800/80 dark:hover:bg-neutral-800/60 dark:hover:border-neutral-700 animate-slide-up overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-950"
+      className="group relative bg-white border border-neutral-200/80 rounded-xl transition-all hover:bg-neutral-50 hover:border-neutral-300 hover:-translate-y-px cursor-pointer dark:bg-neutral-900 dark:border-neutral-800/80 dark:hover:bg-neutral-800/60 dark:hover:border-neutral-700 animate-slide-up overflow-hidden"
       style={{ animationDelay: `${Math.min(index, 4) * 0.05}s` }}
-      tabIndex={0}
-      role="button"
-      aria-label={`Abrir resolución: ${item.titulo}`}
       onClick={() => onOpen(item)}
-      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(item); } }}
     >
       <div className="p-4 sm:p-5">
         {/* Fila superior: insignia + resolución + fecha */}
-        <div className="flex items-center gap-2.5 flex-wrap mb-2">
-          {resultado && (
-            <span className={`inline-flex items-center border rounded-md px-2 py-0.5 text-[11px] font-medium uppercase tracking-wider ${badgeColor}`}>
-              {RESULTADO_LABELS[resultado]}
-            </span>
-          )}
-          <span className="font-mono text-xs text-neutral-400 dark:text-neutral-500">
+        <div className="flex items-center gap-2.5 flex-wrap mb-2.5">
+          {resultado && <ResultadoBadge resultado={resultado} />}
+          <span className="font-mono text-xs text-neutral-500 dark:text-neutral-400">
             {item.metadatos?.resolucion ?? ""}
           </span>
           <span className="flex-1" />
           {item.metadatos?.fecha && (
-            <span className="font-mono text-xs text-neutral-400 dark:text-neutral-500">
+            <span className="font-mono text-xs text-neutral-500 dark:text-neutral-400">
               {fmtFecha(item.metadatos.fecha)}
             </span>
           )}
         </div>
 
-        {/* Título */}
-        <h3 className="text-base sm:text-lg font-medium leading-snug tracking-tight text-neutral-900 dark:text-neutral-100 mb-2">
-          {highlight(item.titulo)}
+        {/* Título: única acción principal; el color de la tarjeta al pasar el cursor es la señal */}
+        <h3 className="mb-2">
+          <button
+            type="button"
+            aria-label={`Abrir resolución: ${item.titulo}`}
+            onClick={(e) => { e.stopPropagation(); onOpen(item); }}
+            className="text-left text-lg sm:text-xl font-medium leading-snug tracking-tight text-neutral-900 group-hover:text-blue-700 dark:text-neutral-100 dark:group-hover:text-blue-400 transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900"
+          >
+            {highlight(item.titulo)}
+          </button>
         </h3>
 
         {/* Resumen / vista previa */}
-        <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed line-clamp-2 mb-3">
+        <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed line-clamp-3 sm:line-clamp-2">
           {highlight(item.texto.slice(0, 250))}
           {item.texto.length > 250 && "…"}
         </p>
 
-        {/* Pie: insignia de tipo + descriptores + acciones */}
-        <div className="flex items-center gap-2 flex-wrap">
+        {/* Pie: tipo + acción rápida. Red de citas y PDF viven en el panel de lectura, no aquí. */}
+        <div className="flex items-center gap-2 flex-wrap mt-3 pt-3 border-t border-neutral-200/80 dark:border-neutral-800/80">
           {item.metadatos?.tipo_procedimiento && (
-            <span className="border border-neutral-200/80 dark:border-neutral-700/80 rounded-md px-2 py-0.5 text-[11px] font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
               {TIPO_LABELS[item.metadatos.tipo_procedimiento] ?? item.metadatos.tipo_procedimiento}
             </span>
           )}
-          {item.descriptores && item.descriptores.slice(0, 3).map((d) => (
-            <span key={d} className="text-[11px] font-medium text-neutral-400 dark:text-neutral-500 border border-neutral-200/80 dark:border-neutral-700/80 rounded-md px-1.5 py-px">
-              {DESCRIPTOR_LABELS[d] ?? d}
-            </span>
-          ))}
-          {item.descriptores && item.descriptores.length > 3 && (
-            <span className="text-[11px] text-neutral-400">+{item.descriptores.length - 3}</span>
-          )}
           <span className="flex-1" />
-          {/* Botón de cita */}
           <button
             onClick={copiarCita}
             title={citaCopied ? "¡Copiado!" : "Copiar cita"}
-            className={`inline-flex items-center gap-1 border rounded-md px-3 py-2 sm:px-2.5 sm:py-1.5 min-h-8 text-[11px] font-medium transition-all duration-200 ${
-              citaCopied
-                ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
-                : "border-neutral-200/80 bg-white text-neutral-500 hover:border-neutral-400 dark:border-neutral-700/80 dark:bg-neutral-800 dark:text-neutral-400"
+            className={`${ACTION_CLASSES} ${
+              citaCopied ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300" : ""
             }`}
           >
-            <span className="relative w-3 h-3">
-              <ClipboardCopy className={`w-3 h-3 absolute inset-0 transition-all duration-150 ${citaCopied ? "opacity-0 scale-75" : "opacity-100 scale-100"}`} />
-              <Check className={`w-3 h-3 absolute inset-0 transition-all duration-150 ${citaCopied ? "opacity-100 scale-100" : "opacity-0 scale-75"}`} />
+            <span className="relative w-3.5 h-3.5">
+              <ClipboardCopy className={`w-3.5 h-3.5 absolute inset-0 transition-all duration-150 ${citaCopied ? "opacity-0 scale-75" : "opacity-100 scale-100"}`} />
+              <Check className={`w-3.5 h-3.5 absolute inset-0 transition-all duration-150 ${citaCopied ? "opacity-100 scale-100" : "opacity-0 scale-75"}`} />
             </span>
             {citaCopied ? "Copiado" : "Citar"}
           </button>
-          {item.metadatos?.resolucion && (
-            <Link
-              href={`/grafo/#res=${item.metadatos.resolucion}`}
-              onClick={(e) => e.stopPropagation()}
-              className="inline-flex items-center justify-center gap-1 border border-neutral-200/80 bg-white rounded-md px-3 py-2 sm:px-2.5 sm:py-1.5 min-h-8 min-w-8 text-[11px] font-medium text-neutral-500 hover:border-neutral-400 dark:border-neutral-700/80 dark:bg-neutral-800 dark:text-neutral-400 transition-colors"
-              title="Ver en red de citas"
-            >
-              <Share2 className="w-3 h-3" />
-            </Link>
-          )}
-          {item.metadatos?.archivo_origen && (
-            <a
-              href={item.metadatos.archivo_origen}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="inline-flex items-center justify-center gap-1 border border-neutral-200/80 bg-white rounded-md px-3 py-2 sm:px-2.5 sm:py-1.5 min-h-8 min-w-8 text-[11px] font-medium text-neutral-500 hover:border-neutral-400 dark:border-neutral-700/80 dark:bg-neutral-800 dark:text-neutral-400 transition-colors"
-              title="Ver PDF"
-            >
-              <ExternalLink className="w-3 h-3" />
-            </a>
-          )}
         </div>
       </div>
     </article>
   );
 });
+
+const EJEMPLOS = ["consentimiento", "videovigilancia", "derecho de acceso"];
 
 interface SearchResultsProps {
   query: string;
@@ -137,6 +117,9 @@ interface SearchResultsProps {
   setPage?: (p: number) => void;
   totalItems?: number;
   onOpenItem?: (item: ResolutionItem) => void;
+  onExampleQuery?: (q: string) => void;
+  onClearFilters?: () => void;
+  activeFilterCount?: number;
 }
 
 export function SearchResults({
@@ -150,6 +133,9 @@ export function SearchResults({
   setPage,
   totalItems = 0,
   onOpenItem,
+  onExampleQuery,
+  onClearFilters,
+  activeFilterCount = 0,
 }: SearchResultsProps) {
   const { indexReady } = useSearchIndex();
 
@@ -209,7 +195,9 @@ export function SearchResults({
           </div>
         </div>
         <p className="text-base font-medium text-neutral-700 dark:text-neutral-300">Preparando el índice de resoluciones</p>
-        <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">Este paso ocurre una sola vez.</p>
+        <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+          Este paso ocurre una sola vez; después las búsquedas son inmediatas.
+        </p>
       </div>
     );
   }
@@ -218,15 +206,29 @@ export function SearchResults({
     return (
       <div className="py-10 sm:py-14 text-center">
         <FileText className="mx-auto mb-4 h-8 w-8 text-neutral-300 dark:text-neutral-600" aria-hidden="true" />
-        <h2 className="mb-2 text-base font-semibold text-neutral-700 dark:text-neutral-300">
+        <h2 className="mb-2 text-lg font-semibold tracking-tight text-neutral-800 dark:text-neutral-200">
           Busca en las resoluciones de PRODHAB
         </h2>
-        <p className="text-sm text-neutral-500 dark:text-neutral-400 max-w-md mx-auto">
+        <p className="text-sm text-neutral-600 dark:text-neutral-400 max-w-md mx-auto leading-relaxed">
           Escribe una pregunta, un tema o un número de expediente como{" "}
-          <span className="font-mono text-xs bg-neutral-100 dark:bg-neutral-800 px-1 py-0.5">138-07-2023-DEN</span>.
+          <span className="font-mono text-xs bg-neutral-100 dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700/80 rounded px-1.5 py-0.5">138-07-2023-DEN</span>.
         </p>
+        {onExampleQuery && (
+          <div className="mt-5 flex flex-wrap justify-center gap-2">
+            {EJEMPLOS.map((q) => (
+              <button
+                key={q}
+                type="button"
+                onClick={() => onExampleQuery(q)}
+                className="inline-flex items-center min-h-9 px-3 border border-neutral-200/80 bg-white rounded-lg text-sm font-medium text-neutral-700 hover:border-blue-400 hover:text-blue-600 dark:border-neutral-700/80 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:text-blue-400 transition-colors"
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+        )}
         {totalItems > 0 && (
-          <p className="mt-4 text-xs text-neutral-400 dark:text-neutral-600">
+          <p className="mt-5 text-xs text-neutral-400 dark:text-neutral-600">
             {totalItems.toLocaleString("es-CR")} resoluciones disponibles
           </p>
         )}
@@ -238,14 +240,25 @@ export function SearchResults({
     return (
       <div className="py-10 sm:py-12 text-center">
         <Search className="mx-auto mb-4 h-8 w-8 text-neutral-300 dark:text-neutral-600" aria-hidden="true" />
-        <h2 className="mb-1 text-base font-semibold text-neutral-700 dark:text-neutral-300">
-          {query ? <>Sin resultados para &ldquo;{query}&rdquo;</> : "Sin resultados con los filtros activos"}
+        <h2 className="mb-1 text-lg font-semibold tracking-tight text-neutral-800 dark:text-neutral-200">
+          {query ? <>Sin resultados para &laquo;{query}&raquo;</> : "Sin resultados con los filtros activos"}
         </h2>
-        <div className="mt-4 text-left max-w-xs mx-auto space-y-2">
-          <p className="text-xs font-medium text-neutral-400 dark:text-neutral-500 uppercase tracking-wide">Sugerencias</p>
-          <p className="text-sm text-neutral-600 dark:text-neutral-400">Usar menos palabras o una sola palabra clave</p>
-          <p className="text-sm text-neutral-600 dark:text-neutral-400">Bajar el control de Precisión en el panel de filtros para ampliar resultados</p>
+        <div className="mt-5 text-left max-w-sm mx-auto space-y-2">
+          <p className="text-[11px] font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">Sugerencias</p>
+          <p className="text-sm text-neutral-600 dark:text-neutral-400">Usar menos palabras, o una sola palabra clave.</p>
+          <p className="text-sm text-neutral-600 dark:text-neutral-400">
+            Bajar el control de <strong className="font-semibold">Precisión</strong> en el panel de filtros para ampliar los resultados.
+          </p>
         </div>
+        {onClearFilters && activeFilterCount > 0 && (
+          <button
+            type="button"
+            onClick={onClearFilters}
+            className="mt-5 inline-flex items-center min-h-11 px-4 border border-neutral-200/80 bg-white rounded-lg text-sm font-medium text-neutral-700 hover:border-blue-400 hover:text-blue-600 dark:border-neutral-700/80 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:text-blue-400 transition-colors"
+          >
+            Quitar {activeFilterCount === 1 ? "el filtro" : `los ${activeFilterCount} filtros`}
+          </button>
+        )}
       </div>
     );
   }

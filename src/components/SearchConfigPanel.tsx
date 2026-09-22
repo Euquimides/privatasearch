@@ -293,11 +293,11 @@ export function SearchConfigPanel({
             background: `linear-gradient(to right, var(--primary) 0%, var(--primary) ${similarityThreshold * 100}%, var(--slider-track-empty) ${similarityThreshold * 100}%, var(--slider-track-empty) 100%)`,
           }}
         />
-        <div className="mt-1 flex justify-between text-[11px] text-neutral-400">
+        <div className="mt-1 flex justify-between text-[11px] text-neutral-500 dark:text-neutral-400">
           <span>Más resultados</span>
           <span>Más precisos</span>
         </div>
-        <p className="mt-1.5 text-[11px] text-neutral-400 dark:text-neutral-500">Qué tan cercana debe ser la coincidencia con tu búsqueda.</p>
+        <p className="mt-1.5 text-[11px] text-neutral-500 dark:text-neutral-400">Qué tan cercana debe ser la coincidencia con tu búsqueda.</p>
       </div>
 
       {/* Límite de relacionadas */}
@@ -305,7 +305,7 @@ export function SearchConfigPanel({
         <label htmlFor="related-limit" className="mb-1 block text-[11px] font-bold uppercase tracking-widest text-neutral-400 dark:text-neutral-500">
           Relacionadas
         </label>
-        <p className="mb-2 text-[11px] text-neutral-400 dark:text-neutral-500">Cuántas resoluciones similares mostrar al abrir un resultado.</p>
+        <p className="mb-2 text-[11px] text-neutral-500 dark:text-neutral-400">Cuántas resoluciones similares mostrar al abrir un resultado.</p>
         <div className="flex gap-2">
           {[3, 5, 10].map((n) => (
             <button

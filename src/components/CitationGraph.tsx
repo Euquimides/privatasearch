@@ -226,19 +226,28 @@ export default function CitationGraph() {
     controls.addEventListener("end", onEnd);
 
     syncFromCamera();
-    const interval = setInterval(() => {
-      if (selectedNode || interacting) return;
+    // ponytail: rAF en vez de setInterval — sincroniza con el refresco real
+    // y el navegador lo pausa solo en pestañas en segundo plano (setInterval no).
+    const ANGULAR_SPEED = Math.PI / 54; // rad/s, equivalente al ritmo anterior (30ms · PI/1800)
+    let raf = 0;
+    let lastT: number | null = null;
+    const tick = (t: number) => {
+      raf = requestAnimationFrame(tick);
+      if (selectedNode || interacting) { lastT = t; return; }
+      const dt = lastT === null ? 0 : (t - lastT) / 1000;
+      lastT = t;
       const { x, z } = camera.position;
       const distance = Math.hypot(x, z);
-      orbitAngleRef.current += Math.PI / 1800;
+      orbitAngleRef.current += ANGULAR_SPEED * dt;
       graphRef.current?.cameraPosition({
         x: distance * Math.sin(orbitAngleRef.current),
         z: distance * Math.cos(orbitAngleRef.current),
       });
-    }, 30);
+    };
+    raf = requestAnimationFrame(tick);
 
     return () => {
-      clearInterval(interval);
+      cancelAnimationFrame(raf);
       if (idleTimer) clearTimeout(idleTimer);
       controls.removeEventListener("start", onStart);
       controls.removeEventListener("end", onEnd);
