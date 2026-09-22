@@ -193,13 +193,14 @@ export const RESULTADO_COLORS: Record<ResultadoType, string> = {
 };
 
 // Clases Tailwind por resultado para los badges (SearchResults, ReaderOverlay)
+// Insignias tipo pastilla (sin borde): relleno tenue + texto del mismo tono.
 export const RESULTADO_BADGE_CLASSES: Record<ResultadoType, string> = {
-  con_lugar: "border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-700",
-  parcialmente_con_lugar: "border-amber-500 bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-700",
-  sin_lugar: "border-red-400 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700",
-  archivado: "border-neutral-400 bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-600",
-  rechazo_de_plano: "border-orange-400 bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-700",
-  otro: "border-blue-400 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700",
+  con_lugar: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
+  parcialmente_con_lugar: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200",
+  sin_lugar: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+  archivado: "bg-neutral-200 text-neutral-700 dark:bg-neutral-700 dark:text-neutral-200",
+  rechazo_de_plano: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
+  otro: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
 };
 
 export const TIPO_LABELS: Record<TipoProcedimientoType, string> = {

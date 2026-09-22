@@ -8,7 +8,8 @@
     "prebuild": "node scripts/generate-stats.mjs",
     "build": "next build",
     "start": "next start",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "chart.js": "^4.5.1",
@@ -23,6 +24,7 @@
     "react-force-graph-3d": "^1.29.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4.3.1",
     "@types/node": "^25",
     "@types/react": "^19.2.17",
