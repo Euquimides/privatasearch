@@ -234,7 +234,7 @@ export default function CitationGraph() {
     const tick = (t: number) => {
       raf = requestAnimationFrame(tick);
       if (selectedNode || interacting) { lastT = t; return; }
-      const dt = lastT === null ? 0 : (t - lastT) / 1000;
+      const dt = lastT === null ? 0 : Math.min((t - lastT) / 1000, 0.1); // rAF pausado en segundo plano devuelve saltos enormes
       lastT = t;
       const { x, z } = camera.position;
       const distance = Math.hypot(x, z);

@@ -48,8 +48,9 @@ test('abrir una resolución relacionada la muestra en el panel', async ({ page }
 
 test('enlace directo #abrir=<resolución> abre el panel de lectura', async ({ page }) => {
     const dialogo = page.getByRole('dialog');
-    const numero = await dialogo.locator('span.font-mono').first().textContent();
-    test.skip(!numero, 'la resolución no tiene número asignado');
+    // la barra superior cae al expediente si no hay resolución; se lee el dato de la ficha
+    const numero = (await dialogo.locator('div:has(> dt:text-is("N.° de resolución")) dd').textContent())?.trim();
+    test.skip(!numero || numero === '—', 'la resolución no tiene número asignado');
 
     await dialogo.getByRole('button', { name: 'Cerrar' }).click();
     await expect(dialogo).toBeHidden();

@@ -61,7 +61,7 @@ export function ReaderOverlay({
     const previouslyFocused = document.activeElement as HTMLElement | null;
     closeButtonRef.current?.focus();
     return () => previouslyFocused?.focus?.();
-  }, []);
+  }, [item.id]);
 
   // Mapa n.° de resolución → item, con ceros a la izquierda normalizados
   // (las citas a veces vienen como "48-2018" y el índice tiene "048-2018")

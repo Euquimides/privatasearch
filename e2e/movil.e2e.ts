@@ -61,9 +61,11 @@ test('limpiar búsqueda vacía el campo', async ({ page }) => {
 test('botones de las tarjetas de resultados >= 44px', async ({ page }) => {
     await page.goto('/');
     await page.getByLabel('Buscar resoluciones').fill('consentimiento');
-    const tarjeta = page.getByRole('button', { name: /^Abrir resolución:/ }).first();
+    const tarjeta = page.locator('article').first();
     await expect(tarjeta).toBeVisible();
-    for (const el of await tarjeta.locator('button, a[href]').all()) {
+    // el título abre la resolución, pero su zona táctil real es la tarjeta entera (onClick del <article>)
+    expect(await tarjeta.locator('button:not([aria-label^="Abrir resoluci"]), a[href]').count()).toBeGreaterThan(0);
+    for (const el of await tarjeta.locator('button:not([aria-label^="Abrir resoluci"]), a[href]').all()) {
         const b = (await el.boundingBox())!;
         expect(b.height, await el.innerHTML()).toBeGreaterThanOrEqual(44);
         expect(b.width).toBeGreaterThanOrEqual(44);
