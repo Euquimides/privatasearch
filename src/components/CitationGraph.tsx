@@ -24,6 +24,7 @@ const DIM_LINK = { dark: "rgba(38, 38, 38, 0.18)", light: "rgba(212, 212, 212, 0
 
 interface GraphNode {
   id: string;
+  titulo: string;
   resolucion: string;
   expediente: string;
   resultado: string;
@@ -40,6 +41,9 @@ interface GraphLink {
   source: string;
   target: string;
 }
+
+const escapeHtml = (s: string) =>
+  s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
 // Construye nodos y aristas a partir de las resoluciones cargadas
 function buildGraphData(items: ResolutionItem[]) {
@@ -93,6 +97,7 @@ function buildGraphData(items: ResolutionItem[]) {
     const resultado = item.metadatos?.resultado ?? "otro";
     nodes.push({
       id: num,
+      titulo: item.titulo ?? "",
       resolucion: num,
       expediente: item.metadatos?.expediente ?? "",
       resultado,
@@ -431,8 +436,9 @@ export default function CitationGraph() {
         nodeRelSize={3}
         nodeVal={(node: any) => Math.max(1, (node.citationCount ?? 0) + 1)}
         nodeColor={getNodeColor}
+        // nodeLabel se inserta como HTML: escapar los campos de texto
         nodeLabel={(node: any) =>
-          `${node.resolucion}${node.expediente ? ` · ${node.expediente}` : ""}${node.denunciado ? ` · ${node.denunciado}` : ""}${node.citationCount > 0 ? ` (citada ${node.citationCount}×)` : ""}`
+          `${node.titulo ? `<b>${escapeHtml(node.titulo)}</b><br>` : ""}${escapeHtml(`${node.resolucion}${node.expediente ? ` · ${node.expediente}` : ""}${node.denunciado ? ` · ${node.denunciado}` : ""}${node.citationCount > 0 ? ` (citada ${node.citationCount}×)` : ""}`)}`
         }
         linkColor={getLinkColor}
         linkWidth={getLinkWidth}
@@ -510,10 +516,10 @@ export default function CitationGraph() {
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200 truncate">{node.resolucion}</p>
-                        {node.expediente && (
-                          <p className="font-mono text-[11px] tracking-wide text-neutral-500 mt-0.5 truncate">Exp. {node.expediente}</p>
-                        )}
+                        <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200 line-clamp-2">{node.titulo || node.resolucion}</p>
+                        <p className="font-mono text-[11px] tracking-wide text-neutral-500 mt-0.5 truncate">
+                          {node.titulo && `Res. ${node.resolucion} · `}{node.expediente && `Exp. ${node.expediente}`}
+                        </p>
                         {node.denunciado && (
                           <p className="text-xs text-neutral-500 truncate">{node.denunciado}</p>
                         )}
@@ -545,7 +551,7 @@ export default function CitationGraph() {
       {selectedNode && (
         <div className={`absolute left-2 right-2 bottom-2 sm:left-4 sm:right-auto sm:bottom-auto sm:top-14 z-10 px-4 py-3 text-sm sm:max-w-xs ${panelBase}`}>
           <div className="flex items-start justify-between gap-2">
-            <p className="font-semibold text-neutral-900 dark:text-neutral-100">{selectedNode.resolucion}</p>
+            <p className="font-semibold text-neutral-900 dark:text-neutral-100">{selectedNode.titulo || selectedNode.resolucion}</p>
             <button
               onClick={() => { setSelectedNode(null); if (!isSearchActive) { setHighlightNodes(new Set()); setHighlightLinks(new Set()); } }}
               className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors text-xs leading-none mt-0.5"
@@ -554,9 +560,9 @@ export default function CitationGraph() {
               ✕
             </button>
           </div>
-          {selectedNode.expediente && (
-            <p className="font-mono text-[11px] tracking-wide text-neutral-500 dark:text-neutral-400 mt-0.5">Exp. {selectedNode.expediente}</p>
-          )}
+          <p className="font-mono text-[11px] tracking-wide text-neutral-500 dark:text-neutral-400 mt-0.5">
+            {selectedNode.titulo && `Res. ${selectedNode.resolucion} · `}{selectedNode.expediente && `Exp. ${selectedNode.expediente}`}
+          </p>
           {selectedNode.denunciado && (
             <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">{selectedNode.denunciado}</p>
           )}

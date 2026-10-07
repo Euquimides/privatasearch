@@ -50,6 +50,8 @@ export interface Cluster {
   centroid?: number[];
   members?: number[];
   size: number;
+  // Títulos representativos (más cercanos al centro del grupo), solo en el JSON precomputado
+  titulos?: string[];
 }
 
 export interface ScatterPoint {
@@ -58,6 +60,7 @@ export interface ScatterPoint {
   expediente: string;
   resolucion: string;
   clusterId: number;
+  titulo?: string;
   recordIndex?: number;
 }
 
@@ -78,10 +81,12 @@ export interface DatasetStatistics {
   recordsPerYear: { [year: string]: number };
   earliestDate: string | null;
   latestDate: string | null;
-  recursoDisponibleDistribution: { [recurso: string]: number };
   resultadoDistribution: { [resultado: string]: number };
   clusterAnalysis: ClusterAnalysis | null;
 }
+
+// Tamaño mínimo de un grupo para que sea relevante en la estadística
+const MIN_CLUSTER_SIZE = 5;
 
 // Funciones auxiliares
 function parseDate(dateStr: string): Date | null {
@@ -139,51 +144,55 @@ function euclideanDistance(a: number[], b: number[]): number {
   return Math.sqrt(sum);
 }
 
-// Implementación de agrupamiento K-means
+// PRNG determinista (mulberry32): cada build genera los mismos grupos
+function seededRandom(seed: number): () => number {
+  return () => {
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Inicialización k-means++: cada centroide nuevo se sortea con probabilidad proporcional
+// a la distancia² al centroide más cercano. Tomar siempre el punto más lejano elegiría
+// los casos atípicos como centros y produciría grupos de una sola resolución.
+function kMeansPlusPlusInit(vectors: number[][], k: number, seed: number = 42): number[][] {
+  const random = seededRandom(seed);
+  const centroids = [[...vectors[Math.floor(random() * vectors.length)]]];
+  const minDist2 = vectors.map(v => euclideanDistance(v, centroids[0]) ** 2);
+
+  while (centroids.length < k && centroids.length < vectors.length) {
+    const total = minDist2.reduce((a, b) => a + b, 0);
+    if (total === 0) break;
+
+    let r = random() * total;
+    let idx = 0;
+    while ((r -= minDist2[idx]) > 0 && idx < vectors.length - 1) idx++;
+
+    const centroid = [...vectors[idx]];
+    centroids.push(centroid);
+    for (let i = 0; i < vectors.length; i++) {
+      minDist2[i] = Math.min(minDist2[i], euclideanDistance(vectors[i], centroid) ** 2);
+    }
+  }
+
+  return centroids;
+}
+
+// Implementación de agrupamiento K-means (Lloyd) a partir de centroides iniciales
 function kMeansClustering(
   vectors: number[][],
-  k: number,
+  initialCentroids: number[][],
   maxIterations: number = 100
 ): { assignments: number[]; centroids: number[][] } {
-  if (vectors.length === 0 || k <= 0) {
+  if (vectors.length === 0 || initialCentroids.length === 0) {
     return { assignments: [], centroids: [] };
   }
-  
+
   const dimensions = vectors[0].length;
-  
-  // Inicializar los centroides usando el método de k-means++ para una mejor convergencia
-  const centroids: number[][] = [];
-  const usedIndices = new Set<number>();
-  
-  // Primer centroide: elige un punto aleatorio
-  const firstIdx = 0;
-  centroids.push([...vectors[firstIdx]]);
-  usedIndices.add(firstIdx);
-  
-  // Selecciona los siguientes centroides basados en la distancia al centroide más cercano
-  while (centroids.length < k && centroids.length < vectors.length) {
-    let maxDist = -1;
-    let bestIdx = 0;
-    
-    for (let i = 0; i < vectors.length; i++) {
-      if (usedIndices.has(i)) continue;
-      
-      let minDistToCentroid = Infinity;
-      for (const centroid of centroids) {
-        const dist = euclideanDistance(vectors[i], centroid);
-        minDistToCentroid = Math.min(minDistToCentroid, dist);
-      }
-      
-      if (minDistToCentroid > maxDist) {
-        maxDist = minDistToCentroid;
-        bestIdx = i;
-      }
-    }
-    
-    centroids.push([...vectors[bestIdx]]);
-    usedIndices.add(bestIdx);
-  }
-  
+  const centroids = initialCentroids.map(c => [...c]);
+
   let assignments: number[] = new Array(vectors.length).fill(0);
   
   for (let iter = 0; iter < maxIterations; iter++) {
@@ -326,7 +335,6 @@ export function calculateStatistics(dataset: Dataset): DatasetStatistics {
   const totalRecords = datos.length;
   const expedientes = new Set<string>();
   const recordsPerYear: { [year: string]: number } = {};
-  const recursoDisponibleDistribution: { [recurso: string]: number } = {};
   const resultadoDistribution: { [resultado: string]: number } = {};
 
   let earliestDate: Date | null = null;
@@ -361,10 +369,6 @@ export function calculateStatistics(dataset: Dataset): DatasetStatistics {
       resultadoDistribution[meta.resultado] = (resultadoDistribution[meta.resultado] || 0) + 1;
     }
 
-    if (meta.recurso_disponible) {
-      recursoDisponibleDistribution[meta.recurso_disponible] = (recursoDisponibleDistribution[meta.recurso_disponible] || 0) + 1;
-    }
-
     if (record.vector && Array.isArray(record.vector) && record.vector.length > 0) {
       allVectors.push(record.vector);
       vectorToRecordMap.push(recordIdx);
@@ -375,10 +379,21 @@ export function calculateStatistics(dataset: Dataset): DatasetStatistics {
   let clusterAnalysis: ClusterAnalysis | null = null;
   
   if (allVectors.length > 10) {
-    // Determina el número de clústeres (usando una aproximación del método del codo)
-    const numClusters = Math.min(8, Math.ceil(Math.sqrt(allVectors.length / 2)));
-    
-    const { assignments, centroids } = kMeansClustering(allVectors, numClusters);
+    // Número inicial de clústeres: regla empírica sqrt(n/2), con tope de 8
+    const initialK = Math.min(8, Math.ceil(Math.sqrt(allVectors.length / 2)));
+
+    let { assignments, centroids } = kMeansClustering(allVectors, kMeansPlusPlusInit(allVectors, initialK));
+
+    // Descarta los grupos con menos de MIN_CLUSTER_SIZE resoluciones y reagrupa con los
+    // centroides restantes, hasta que todos los grupos tengan tamaño suficiente
+    for (;;) {
+      const sizes = new Array(centroids.length).fill(0);
+      for (const a of assignments) sizes[a]++;
+      const kept = centroids.filter((_, c) => sizes[c] >= MIN_CLUSTER_SIZE);
+      if (kept.length === 0 || kept.length === centroids.length) break;
+      ({ assignments, centroids } = kMeansClustering(allVectors, kept));
+    }
+    const numClusters = centroids.length;
     const outlierIndices = detectOutliers(allVectors, assignments, centroids);
     
     // Construye la información de los clústeres
@@ -460,7 +475,6 @@ export function calculateStatistics(dataset: Dataset): DatasetStatistics {
     earliestDate: earliestDate ? toIsoDate(earliestDate) : null,
     latestDate: latestDate ? toIsoDate(latestDate) : null,
     clusterAnalysis,
-    recursoDisponibleDistribution,
     resultadoDistribution,
   };
 }
