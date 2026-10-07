@@ -126,7 +126,7 @@ export default function EstadisticasPage() {
             <p className="text-base sm:text-lg leading-relaxed text-neutral-600 dark:text-neutral-400">
               Qué resuelve la PRODHAB, cuánto y sobre qué temas. Las resoluciones se agrupan
               automáticamente por similitud de su texto; cada grupo se describe con los títulos de sus
-              casos más representativos.
+              casos más representativos. Estadísticas generadas, ponga cuidado especialmente a la distribución de clústeres. 
             </p>
           </div>
           <dl className="grid grid-cols-2 lg:grid-cols-4 gap-3">
