@@ -280,7 +280,7 @@ export function ReaderOverlay({
                     {highlight(sec.text)}
                   </p>
                 ) : (
-                  <div className="text-base leading-relaxed text-neutral-800 dark:text-neutral-200 max-w-[65ch]">
+                  <div className="text-base leading-relaxed text-neutral-800 dark:text-neutral-200 max-w-[65ch] text-justify hyphens-auto">
                     {splitIntoParagraphs(sec.text).map((p, j) => (
                       <p key={j} className="mb-3.5">{highlight(p)}</p>
                     ))}

@@ -96,8 +96,9 @@ const PARAGRAPH_MARKERS =
 
 function groupSentences(text: string): string[] {
   // Dividir en límites de oración, pero no después de abreviaturas como "Ley No. 8968"
-  // o "art. 9" — una oración real no continúa con un dígito o letra minúscula.
-  const sentences = text.split(/(?<=\.)\s+(?=[^\p{Ll}\d])/u);
+  // o "art. 9" — una oración real no continúa con un dígito o letra minúscula —
+  // ni después de un enumerador suelto ("… datos. 2. Llame …").
+  const sentences = text.split(/(?<=\.)(?<!(?<![\p{L}\p{N}])\d{1,3}\.)\s+(?=[^\p{Ll}\d])/u);
   const out: string[] = [];
   for (let i = 0; i < sentences.length; i += 3) {
     out.push(sentences.slice(i, i + 3).join(" "));
