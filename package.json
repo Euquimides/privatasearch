@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "prebuild": "node scripts/generate-stats.mjs",
+    "prebuild": "node scripts/clean-dataset.mjs && node scripts/generate-stats.mjs",
     "build": "next build",
     "start": "next start",
     "test": "vitest run",
