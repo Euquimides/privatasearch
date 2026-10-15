@@ -2,10 +2,14 @@ import Link from "next/link";
 import Footer from "@/components/Footer";
 import { SiteHeader } from "@/components/SiteHeader";
 import { PrivacyNotice } from "@/components/formularios/PrivacyNotice";
+import { organismosPublicosSchema } from "@/schemas/organismos-publicos.schema";
+import { personasFisicasSchema } from "@/schemas/personas-fisicas.schema";
+import { personasJuridicasSchema } from "@/schemas/personas-juridicas.schema";
 
 const FORM_TYPES = [
   {
     href: "/formularios/personas-fisicas",
+    sections: personasFisicasSchema.sections.length,
     title: "Persona física",
     description: "Para personas físicas que necesitan inscribir una base de datos a nombre propio.",
     icon: (
@@ -17,6 +21,7 @@ const FORM_TYPES = [
   },
   {
     href: "/formularios/personas-juridicas",
+    sections: personasJuridicasSchema.sections.length,
     title: "Persona jurídica",
     description: "Para empresas u organizaciones privadas, con datos de representante legal.",
     icon: (
@@ -29,7 +34,8 @@ const FORM_TYPES = [
   },
   {
     href: "/formularios/organismos-publicos",
-    title: "Organizaciones públicas",
+    sections: organismosPublicosSchema.sections.length,
+    title: "Organismos públicos",
     description: "Para instituciones del sector público, con secciones específicas.",
     icon: (
       <>
@@ -90,6 +96,9 @@ export default function FormulariosPage() {
                   {form.title}
                 </h2>
                 <p className="text-sm text-neutral-600 dark:text-neutral-400">{form.description}</p>
+                <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
+                  {form.sections} secciones · puede guardar un .json y retomarlo después
+                </p>
               </div>
               <span className="mt-auto flex items-center gap-1.5 text-[13px] font-semibold text-blue-600 dark:text-blue-400">
                 Comenzar

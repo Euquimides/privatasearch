@@ -327,6 +327,16 @@ export const SearchProvider: React.FC<{ children: React.ReactNode }> = ({
   // Reutilizable desde cualquier vista (búsqueda principal, grafo de citas, etc.).
   const queryIndex = useCallback((query: string, limit: number = 10): ResolutionItem[] => {
     if (!indexRef.current || !query) return [];
+    // Un n.° de expediente (138-07-2023-DEN) o de resolución (615-2024) se busca exacto:
+    // FlexSearch lo partiría en 138 / 07 / 2023 y mezclaría expedientes ajenos.
+    const id = query.trim().toUpperCase();
+    if (/^\d{1,4}(-\d{2})?-\d{4}(-[A-Z]+)?$/.test(id)) {
+      const norm = (s?: string) => (s ?? "").toUpperCase().replace(/^0+/, "");
+      const exact = [...itemMapRef.current.values()].filter(
+        (i) => norm(i.metadatos?.expediente) === norm(id) || norm(i.metadatos?.resolucion) === norm(id),
+      );
+      if (exact.length > 0) return exact.slice(0, limit);
+    }
     // FlexSearch Document devuelve un array de resultados por cada campo indexado.
     const raw: { result: string[] }[] = indexRef.current.search(query, { limit });
     const seen = new Set<string>();

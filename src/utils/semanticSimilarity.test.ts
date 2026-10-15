@@ -51,6 +51,12 @@ describe("findMostSimilar", () => {
     expect(result.map((r) => r.item.id)).toEqual(["a", "b", "c"]);
   });
 
+  it("returns MMR picks sorted by similarity", () => {
+    const result = findMostSimilar([1, 0], items, 3, 0.5, 0);
+    const sims = result.map((r) => r.similarity);
+    expect(sims).toEqual([...sims].sort((x, y) => y - x));
+  });
+
   it("respects topN", () => {
     const result = findMostSimilar([1, 0], items, 1, 1.0, 0);
     expect(result).toHaveLength(1);

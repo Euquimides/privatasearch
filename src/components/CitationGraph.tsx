@@ -58,15 +58,8 @@ function buildGraphData(items: ResolutionItem[]) {
   // Resuelve una cita a su número canónico indexado (o la deja igual si es externa)
   const canon = (c: string) => resByNum.get(norm(c))?.metadatos?.resolucion ?? c;
 
-  const citedCount = new Map<string, number>();
-  items.forEach((item) => {
-    item.metadatos?.resoluciones_citadas?.forEach((cited) => {
-      const key = canon(cited);
-      citedCount.set(key, (citedCount.get(key) || 0) + 1);
-    });
-  });
-
   const links: GraphLink[] = [];
+  const citedCount = new Map<string, number>(); // in-degree: aristas ya deduplicadas y sin autocitas
   const nodeIds = new Set<string>();
   const linkSeen = new Set<string>();
   const citesInGraph = new Map<string, number>(); // out-degree dentro del grafo
@@ -85,6 +78,7 @@ function buildGraphData(items: ResolutionItem[]) {
       linkSeen.add(key);
       links.push({ source: num, target: c });
       citesInGraph.set(num, (citesInGraph.get(num) ?? 0) + 1);
+      citedCount.set(c, (citedCount.get(c) ?? 0) + 1);
       nodeIds.add(num);
       nodeIds.add(c);
     });
@@ -114,13 +108,16 @@ function buildGraphData(items: ResolutionItem[]) {
   return { nodes, links };
 }
 
+// El motor reemplaza source/target por el objeto nodo tras inicializar
+const endId = (end: any): string => (typeof end === "object" ? end.id : end);
+
 // Calcula los vecinos de un nodo (puro)
 function computeNeighbors(links: GraphLink[], nodeId: string) {
   const nodes = new Set<string>([nodeId]);
   const linkSet = new Set<string>();
   links.forEach((link) => {
-    const src = typeof link.source === "object" ? (link.source as any).id : link.source;
-    const tgt = typeof link.target === "object" ? (link.target as any).id : link.target;
+    const src = endId(link.source);
+    const tgt = endId(link.target);
     if (src === nodeId || tgt === nodeId) {
       nodes.add(src);
       nodes.add(tgt);
@@ -147,6 +144,7 @@ export default function CitationGraph() {
   const [panelOpen, setPanelOpen] = useState(true);
   const [orbiting, setOrbiting] = useState(false);
   const orbitAngleRef = useRef(0);
+  const hoveringRef = useRef(false); // pausa la órbita mientras el cursor está sobre un nodo
   const bloomRef = useRef<UnrealBloomPass | null>(null);
 
   // Tamaño del contenedor
@@ -238,7 +236,7 @@ export default function CitationGraph() {
     let lastT: number | null = null;
     const tick = (t: number) => {
       raf = requestAnimationFrame(tick);
-      if (selectedNode || interacting) { lastT = t; return; }
+      if (selectedNode || interacting || hoveringRef.current) { lastT = t; return; }
       const dt = lastT === null ? 0 : Math.min((t - lastT) / 1000, 0.1); // rAF pausado en segundo plano devuelve saltos enormes
       lastT = t;
       const { x, z } = camera.position;
@@ -350,6 +348,7 @@ export default function CitationGraph() {
 
   const handleNodeHover = useCallback(
     (node: any) => {
+      hoveringRef.current = !!node;
       if (selectedNode || isSearchActive) return; // No alterar highlights si hay selección o búsqueda
       if (!node) {
         setHighlightNodes(new Set());
@@ -375,20 +374,24 @@ export default function CitationGraph() {
   const dimNode = isDark ? DIM_NODE.dark : DIM_NODE.light;
   const dimLink = isDark ? DIM_LINK.dark : DIM_LINK.light;
 
+  // Prioridad: nodo seleccionado > búsqueda > hover. Así, al abrir un
+  // resultado de búsqueda se ven sus vecinos y no todo el conjunto buscado.
+  const searchMode = isSearchActive && !selectedNode;
+
   const getNodeColor = useCallback(
     (node: any) => {
-      if (isSearchActive) return searchMatches.has(node.id) ? node.color : dimNode;
+      if (searchMode) return searchMatches.has(node.id) ? node.color : dimNode;
       if (highlightNodes.size > 0) return highlightNodes.has(node.id) ? node.color : dimNode;
       return node.color;
     },
-    [isSearchActive, searchMatches, highlightNodes, dimNode],
+    [searchMode, searchMatches, highlightNodes, dimNode],
   );
 
   const getLinkColor = useCallback(
     (link: any) => {
-      const src = typeof link.source === "object" ? link.source.id : link.source;
-      const tgt = typeof link.target === "object" ? link.target.id : link.target;
-      if (isSearchActive) {
+      const src = endId(link.source);
+      const tgt = endId(link.target);
+      if (searchMode) {
         return searchMatches.has(src) && searchMatches.has(tgt) ? EDGE_HIGHLIGHT_COLOR : dimLink;
       }
       if (highlightLinks.size > 0) {
@@ -396,19 +399,34 @@ export default function CitationGraph() {
       }
       return EDGE_COLOR;
     },
-    [isSearchActive, searchMatches, highlightLinks, dimLink],
+    [searchMode, searchMatches, highlightLinks, dimLink],
   );
 
   const getLinkWidth = useCallback(
     (link: any) => {
-      const src = typeof link.source === "object" ? link.source.id : link.source;
-      const tgt = typeof link.target === "object" ? link.target.id : link.target;
-      if (isSearchActive) return searchMatches.has(src) && searchMatches.has(tgt) ? 1.2 : 0.2;
+      const src = endId(link.source);
+      const tgt = endId(link.target);
+      if (searchMode) return searchMatches.has(src) && searchMatches.has(tgt) ? 1.2 : 0.2;
       if (highlightLinks.size > 0) return highlightLinks.has(`${src}__${tgt}`) ? 1.5 : 0.3;
       return 0.5;
     },
-    [isSearchActive, searchMatches, highlightLinks],
+    [searchMode, searchMatches, highlightLinks],
   );
+
+  // Citas navegables del nodo seleccionado (solo las que están en el grafo)
+  const relations = useMemo(() => {
+    if (!selectedNode) return { citedBy: [], cites: [] };
+    const byId = new Map(graphData.nodes.map((n) => [n.id, n]));
+    const citedBy: GraphNode[] = [];
+    const cites: GraphNode[] = [];
+    graphData.links.forEach((l) => {
+      const src = endId(l.source);
+      const tgt = endId(l.target);
+      if (tgt === selectedNode.id && byId.has(src)) citedBy.push(byId.get(src)!);
+      if (src === selectedNode.id && byId.has(tgt)) cites.push(byId.get(tgt)!);
+    });
+    return { citedBy, cites };
+  }, [selectedNode, graphData]);
 
   if (!indexReady) {
     return (
@@ -426,7 +444,12 @@ export default function CitationGraph() {
     "border border-neutral-200/80 rounded-xl bg-white dark:border-neutral-800/80 dark:bg-neutral-900";
 
   return (
-    <div ref={containerRef} className="relative w-full h-full">
+    <div
+      ref={containerRef}
+      className="relative w-full h-full"
+      role="region"
+      aria-label="Grafo 3D de citas entre resoluciones. Para navegar con teclado, usa la búsqueda (Ctrl+K) y la lista de resultados."
+    >
       <ForceGraph3D
         ref={graphRef}
         width={dimensions.width}
@@ -438,7 +461,7 @@ export default function CitationGraph() {
         nodeColor={getNodeColor}
         // nodeLabel se inserta como HTML: escapar los campos de texto
         nodeLabel={(node: any) =>
-          `${node.titulo ? `<b>${escapeHtml(node.titulo)}</b><br>` : ""}${escapeHtml(`${node.resolucion}${node.expediente ? ` · ${node.expediente}` : ""}${node.denunciado ? ` · ${node.denunciado}` : ""}${node.citationCount > 0 ? ` (citada ${node.citationCount}×)` : ""}`)}`
+          `${node.titulo ? `<b>${escapeHtml(node.titulo)}</b><br>` : ""}${escapeHtml(`${RESULTADO_LABELS[node.resultado as keyof typeof RESULTADO_LABELS] ?? node.resultado} · ${node.resolucion}${node.expediente ? ` · ${node.expediente}` : ""}${node.denunciado ? ` · ${node.denunciado}` : ""}${node.citationCount > 0 ? ` (citada ${node.citationCount}×)` : ""}`)}`
         }
         linkColor={getLinkColor}
         linkWidth={getLinkWidth}
@@ -572,18 +595,39 @@ export default function CitationGraph() {
               {RESULTADO_LABELS[selectedNode.resultado as keyof typeof RESULTADO_LABELS] ?? selectedNode.resultado}
             </span>
           </div>
-          {selectedNode.citationCount > 0 && (
-            <p className="text-[11px] tracking-wide text-neutral-500 mt-1">
-              Citada {selectedNode.citationCount} {selectedNode.citationCount === 1 ? "vez" : "veces"}
-            </p>
-          )}
-          {selectedNode.citesTotal > 0 && (
-            <p className="text-[11px] tracking-wide text-neutral-500 mt-1">
-              Cita {selectedNode.citesTotal} {selectedNode.citesTotal === 1 ? "resolución" : "resoluciones"}
-              {selectedNode.citesInGraph < selectedNode.citesTotal && (
-                <span className="text-neutral-400 dark:text-neutral-500"> ({selectedNode.citesInGraph} en el grafo)</span>
-              )}
-            </p>
+          {[
+            {
+              label: `Citada por ${relations.citedBy.length} ${relations.citedBy.length === 1 ? "resolución" : "resoluciones"}`,
+              nodes: relations.citedBy,
+            },
+            {
+              label: `Cita ${selectedNode.citesTotal} ${selectedNode.citesTotal === 1 ? "resolución" : "resoluciones"}${
+                selectedNode.citesInGraph < selectedNode.citesTotal ? ` (${selectedNode.citesInGraph} en el grafo)` : ""
+              }`,
+              nodes: relations.cites,
+              show: selectedNode.citesTotal > 0,
+            },
+          ].map(({ label, nodes, show }) =>
+            (show ?? nodes.length > 0) && (
+              <div key={label} className="mt-2">
+                <p className="text-[11px] tracking-wide text-neutral-500">{label}</p>
+                {nodes.length > 0 && (
+                  <ul className="mt-0.5 max-h-28 overflow-y-auto">
+                    {nodes.map((n) => (
+                      <li key={n.id}>
+                        <button
+                          onClick={() => focusNode(n)}
+                          className="flex w-full items-center gap-1.5 py-0.5 text-left text-xs text-blue-600 hover:underline dark:text-blue-400"
+                        >
+                          <span className="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ backgroundColor: n.color }} />
+                          <span className="truncate">{n.titulo || n.resolucion}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ),
           )}
           <div className="mt-2 flex flex-wrap items-center gap-3">
             <Link
@@ -624,8 +668,11 @@ export default function CitationGraph() {
       </div>
 
       {/* Estadísticas del grafo — ocultas en móvil */}
-      <div className={`absolute top-4 left-4 hidden sm:block px-3 py-2 text-[11px] font-medium uppercase tracking-widest text-neutral-500 dark:text-neutral-400 ${panelBase}`}>
-        {graphData.nodes.length} resoluciones · {graphData.links.length} citas
+      <div
+        className={`absolute top-4 left-4 hidden sm:block px-3 py-2 text-[11px] font-medium uppercase tracking-widest text-neutral-500 dark:text-neutral-400 ${panelBase}`}
+        title="Solo se muestran las resoluciones que citan o son citadas por otra resolución del corpus"
+      >
+        {graphData.nodes.length} de {allItems.length} resoluciones conectadas · {graphData.links.length} citas entre ellas
       </div>
     </div>
   );

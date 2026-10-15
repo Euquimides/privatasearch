@@ -59,3 +59,9 @@ test('un rango de año filtra y "Limpiar" lo resetea', async ({ page }) => {
     await page.getByRole('button', { name: 'Limpiar' }).click();
     await expect(desde).toHaveValue('');
 });
+
+test('buscar un n.° de expediente devuelve solo la coincidencia exacta', async ({ page }) => {
+    await page.getByLabel('Buscar resoluciones').fill('138-07-2023-DEN');
+    await expect(page.getByRole('status').filter({ hasText: /resoluci/ })).toContainText(/^\s*1\s+resolución\b/);
+    await expect(page.getByRole('button', { name: /^Abrir resolución:/ })).toHaveCount(1);
+});
