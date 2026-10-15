@@ -6,7 +6,8 @@ test('la red de citas carga sin errores de consola', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
     await page.goto('/grafo/');
-    await expect(page.getByLabel('Buscar resoluciones en el grafo')).toBeVisible();
+    // El input aparece tras cargar el índice; en frío puede pasar de los 5s por defecto
+    await expect(page.getByLabel('Buscar resoluciones en el grafo')).toBeVisible({ timeout: 30_000 });
     expect(errors).toEqual([]);
 });
 
