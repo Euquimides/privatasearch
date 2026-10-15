@@ -30,14 +30,18 @@ function parseHashParams(): URLSearchParams {
   return new URLSearchParams(hash);
 }
 
-function writeHashParams(params: Record<string, string | null>) {
+// push = nueva entrada en el historial (abrir el lector); por defecto reemplaza la actual
+function writeHashParams(params: Record<string, string | null>, push = false) {
   const hp = parseHashParams();
   for (const [k, v] of Object.entries(params)) {
     if (v === null || v === "") hp.delete(k);
     else hp.set(k, v);
   }
   const str = hp.toString();
-  window.history.replaceState(null, "", str ? `#${str}` : window.location.pathname + window.location.search);
+  const url = str ? `#${str}` : window.location.pathname + window.location.search;
+  // reader = cuántas entradas del lector hay apiladas (lista → A → relacionada B = 2)
+  if (push) window.history.pushState({ reader: (window.history.state?.reader ?? 0) + 1 }, "", url);
+  else window.history.replaceState(window.history.state, "", url);
 }
 
 export default function SearchClient() {
@@ -83,6 +87,8 @@ export default function SearchClient() {
   const [selectedItem, setSelectedItem] = useState<ResolutionItem | null>(null);
   const [overlayOpen, setOverlayOpen] = useState(false);
   const [overlayClosing, setOverlayClosing] = useState(false);
+  // Se incrementa en popstate para volver a escribir los filtros en la entrada restaurada
+  const [hashSync, setHashSync] = useState(0);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const historyRef = useRef<HTMLDivElement>(null);
@@ -107,15 +113,27 @@ export default function SearchClient() {
       tipo: selectedTipos.length > 0 ? selectedTipos.join(",") : null,
       pag: page > 1 ? page.toString() : null,
     });
-  }, [debouncedQuery, yearFrom, yearTo, selectedDescriptores, selectedResultados, selectedTipos, page]);
+  }, [debouncedQuery, yearFrom, yearTo, selectedDescriptores, selectedResultados, selectedTipos, page, hashSync]);
 
-  const closeOverlay = useCallback(() => {
+  const animateClose = useCallback(() => {
     setOverlayClosing(true);
     setTimeout(() => {
       setOverlayOpen(false);
       setOverlayClosing(false);
     }, 180);
   }, []);
+
+  // Si abrimos el lector con pushState, cerrar = retroceder hasta la lista (popstate anima el cierre);
+  // si se llegó por enlace directo (#abrir=), no hay entrada propia que deshacer.
+  const closeOverlay = useCallback(() => {
+    const depth = window.history.state?.reader;
+    if (depth) {
+      window.history.go(-depth);
+    } else {
+      writeHashParams({ abrir: null });
+      animateClose();
+    }
+  }, [animateClose]);
 
   // Atajos de teclado: / para enfocar búsqueda, Esc para cerrar panel o limpiar consulta
   useEffect(() => {
@@ -279,22 +297,31 @@ export default function SearchClient() {
     [query, showHistory, searchHistory, activeHistoryIndex],
   );
 
-  const openItem = useCallback((item: ResolutionItem) => {
+  const showItem = useCallback((item: ResolutionItem) => {
     setSelectedItem(item);
     setOverlayOpen(true);
   }, []);
 
-  // Abrir directamente una resolución vía hash (#abrir=572-2024), p.ej. desde el grafo de citas
+  // Abrir desde la lista o desde relacionadas: la resolución queda en la URL y en el historial
+  const openItem = useCallback((item: ResolutionItem) => {
+    showItem(item);
+    if (item.metadatos?.resolucion) writeHashParams({ abrir: item.metadatos.resolucion }, true);
+  }, [showItem]);
+
+  // Enlace directo (#abrir=572-2024), p.ej. desde el grafo de citas, y Atrás/Adelante del navegador
   useEffect(() => {
     if (allItems.length === 0) return;
-    const abrir = parseHashParams().get("abrir");
-    if (!abrir) return;
-    const item = allItems.find((i) => i.metadatos?.resolucion === abrir);
-    if (item) {
-      openItem(item);
-      writeHashParams({ abrir: null }); // limpiar para que no se reabra al cerrar
-    }
-  }, [allItems, openItem]);
+    const sync = () => {
+      const abrir = parseHashParams().get("abrir");
+      const item = abrir ? allItems.find((i) => i.metadatos?.resolucion === abrir) : null;
+      if (item) showItem(item);
+      else animateClose();
+    };
+    const onPop = () => { sync(); setHashSync((n) => n + 1); };
+    if (parseHashParams().get("abrir")) sync();
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [allItems, showItem, animateClose]);
 
   return (
     <>
@@ -460,7 +487,7 @@ export default function SearchClient() {
             className="text-xs text-neutral-500 dark:text-neutral-400 flex items-center flex-wrap gap-1.5 mb-4"
           >
             <strong className="text-neutral-900 dark:text-neutral-100">{tipoFilteredResults.length}</strong>
-            {" "}resolucion{tipoFilteredResults.length === 1 ? "" : "es"} {query ? <>para «{query}»</> : "con los filtros:"}
+            {" "}{tipoFilteredResults.length === 1 ? "resolución" : "resoluciones"} {query ? <>para «{query}»</> : "con los filtros:"}
             {(yearFrom || yearTo) && (
               <span className="bg-blue-100/70 rounded-md px-1.5 py-0.5 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 font-medium">
                 {yearFrom ?? "…"}–{yearTo ?? "…"}

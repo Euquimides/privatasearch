@@ -63,3 +63,21 @@ test('enlace directo #abrir=<resolución> abre el panel de lectura', async ({ pa
     await expect(page.getByRole('dialog')).toBeVisible();
     await expect(page.getByRole('dialog').locator('span.font-mono').first()).toHaveText(numero!);
 });
+
+test('Atrás cierra el panel y conserva la consulta', async ({ page }) => {
+    await expect(page).toHaveURL(/#.*abrir=/);
+    await page.goBack();
+    await expect(page.getByRole('dialog')).toBeHidden();
+    await expect(page).toHaveURL(/q=consentimiento/);
+    await expect(page).not.toHaveURL(/abrir=/);
+});
+
+test('Cerrar tras abrir una relacionada vuelve a la lista, no a la anterior', async ({ page }) => {
+    const dialogo = page.getByRole('dialog');
+    const relacionada = dialogo.getByRole('button', { name: /^Abrir resolución:/ }).first();
+    test.skip((await relacionada.count()) === 0, 'no hay resoluciones relacionadas para esta consulta');
+    await relacionada.click();
+    await dialogo.getByRole('button', { name: 'Cerrar' }).click();
+    await expect(dialogo).toBeHidden();
+    await expect(page).not.toHaveURL(/abrir=/);
+});

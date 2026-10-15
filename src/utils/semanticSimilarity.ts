@@ -144,5 +144,8 @@ export function findMostSimilar<T extends VectorItem>(
     }
   }
 
-  return selected.map(({ item, similarity }) => ({ item, similarity }));
+  // MMR elige por diversidad; se muestran ordenadas por similitud
+  return selected
+    .sort((a, b) => b.similarity - a.similarity)
+    .map(({ item, similarity }) => ({ item, similarity }));
 }

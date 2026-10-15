@@ -30,6 +30,8 @@ interface BaseField {
 export interface TextField extends BaseField {
   type: "text" | "email" | "tel" | "date";
   maxLength?: number;
+  /** Token HTML `autocomplete` (WCAG 1.3.5). Solo en campos sobre quien llena el formulario. */
+  autoComplete?: string;
 }
 
 export interface TextareaField extends BaseField {
