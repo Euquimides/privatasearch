@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { DarkModeToggle } from "./DarkModeToggle";
+import { TourButton } from "./Tour";
 
 export function SiteHeader({ subtitle }: { subtitle?: string }) {
   return (
@@ -28,7 +29,10 @@ export function SiteHeader({ subtitle }: { subtitle?: string }) {
             </>
           )}
         </div>
-        <DarkModeToggle />
+        <div className="flex items-center">
+          <TourButton />
+          <DarkModeToggle />
+        </div>
       </div>
     </header>
   );

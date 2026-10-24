@@ -20,6 +20,35 @@ import { SearchConfigPanel } from "./SearchConfigPanel";
 import { SearchResults } from "./SearchResults";
 import { ReaderOverlay } from "./ReaderOverlay";
 import { DarkModeToggle } from "./DarkModeToggle";
+import { Tour, TourButton } from "./Tour";
+import type { Step } from "react-joyride";
+
+// El texto depende del estado: sin búsqueda no hay resultados ni filtro de temas
+function tourSteps(searching: boolean, hasResults: boolean): Step[] {
+  return [
+    {
+      target: '[data-tour="buscador-campo"]',
+      title: "Busque resoluciones",
+      content: "Escriba un tema, palabra clave o número de resolución. Pulse / para saltar aquí; sus búsquedas recientes aparecen al enfocar el campo.",
+    },
+    {
+      target: '[data-tour="buscador-filtros"]',
+      title: "Filtre los resultados",
+      content: searching
+        ? "Acote por años, temas jurídicos, resultado o tipo de procedimiento, y ajuste cuántos resultados ver."
+        : "Acote por años, resultado o tipo de procedimiento, y ajuste cuántos resultados ver. Al buscar aparecen también los temas jurídicos.",
+      placement: "right",
+    },
+    {
+      target: '[data-tour="buscador-resultados"]',
+      title: hasResults ? "Abra una resolución" : "Aquí verás los resultados",
+      content: hasResults
+        ? "Pulse cualquier resultado para leerla completa. Dentro del lector, el botón ? explica sus herramientas."
+        : "Los resultados de su búsqueda aparecen aquí; pulse cualquiera para leerla completa. Dentro del lector, el botón ? explica sus herramientas.",
+      placement: "top",
+    },
+  ];
+}
 import { useDebounce } from "@/utils/hooks";
 
 const HISTORY_KEY = "ps_search_history";
@@ -242,6 +271,9 @@ export default function SearchClient() {
     );
   }, [resultadoFilteredResults, selectedTipos]);
 
+  const hasResults = isSearching && tipoFilteredResults.length > 0;
+  const steps = useMemo(() => tourSteps(isSearching, hasResults), [isSearching, hasResults]);
+
   useEffect(() => { search(debouncedQuery, 500); }, [debouncedQuery, search]);
 
   useEffect(() => {
@@ -352,7 +384,10 @@ export default function SearchClient() {
                 </div>
               </div>
             </div>
-            <DarkModeToggle />
+            <div className="flex items-center">
+              <TourButton />
+              <DarkModeToggle />
+            </div>
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-light tracking-tight text-neutral-900 dark:text-neutral-100 mb-1">
@@ -364,7 +399,7 @@ export default function SearchClient() {
           </p>
 
           {/* Barra de búsqueda */}
-          <div className="relative w-full">
+          <div data-tour="buscador-campo" className="relative w-full">
             <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -513,7 +548,7 @@ export default function SearchClient() {
 
         <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6 items-start">
           {/* Barra lateral */}
-          <aside className="lg:sticky lg:top-6">
+          <aside data-tour="buscador-filtros" className="lg:sticky lg:top-6">
             <SearchConfigPanel
               limit={limit}
               setLimit={setLimit}
@@ -540,7 +575,7 @@ export default function SearchClient() {
           </aside>
 
           {/* Resultados */}
-          <section aria-label="Resultados de búsqueda">
+          <section data-tour="buscador-resultados" aria-label="Resultados de búsqueda">
             <SearchResults
               query={debouncedQuery}
               limit={limit}
@@ -579,6 +614,8 @@ export default function SearchClient() {
           closing={overlayClosing}
         />
       )}
+
+      <Tour steps={steps} />
     </>
   );
 }

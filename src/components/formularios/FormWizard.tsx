@@ -9,6 +9,39 @@ import { downloadMarkdown } from "@/utils/exportToMarkdown";
 import { downloadPdf } from "@/utils/exportToPdf";
 import { downloadBlob } from "@/utils/downloadBlob";
 import { FormRenderer } from "./FormRenderer";
+import type { Step } from "react-joyride";
+import { Tour } from "../Tour";
+
+const TOUR_STEPS: Step[] = [
+  {
+    target: '[data-tour="form-privacidad"]',
+    title: "Sus datos no salen del navegador",
+    content: "Todo se procesa aquí mismo. PrivataSearch no envía ni guarda sus respuestas en ningún servidor.",
+  },
+  {
+    target: '[data-tour="form-progreso"]',
+    title: "Secciones del formulario",
+    content: "Avance sección por sección. Puede volver a cualquier sección que ya visitó.",
+  },
+  {
+    target: '[data-tour="form-mantener"]',
+    title: "Mantener el progreso",
+    content: "Conserva sus respuestas mientras navega por el sitio. Se borran al cerrar la pestaña.",
+    placement: "top",
+  },
+  {
+    target: '[data-tour="form-guardar"]',
+    title: "Guardar, cargar o borrar",
+    content: "Descargue un .json para continuar después o en otro equipo, cárguelo para retomarlo, o borre todo de una vez.",
+    placement: "top",
+  },
+  {
+    target: '[data-tour="form-navegacion"]',
+    title: "Avanzar y exportar",
+    content: "Al completar los campos obligatorios, en la última sección podrá exportar a Word, PDF o Markdown.",
+    placement: "top",
+  },
+];
 
 export function FormWizard({ schema }: { schema: FormSchema }) {
   const [values, setValues] = useState<FormValues>({});
@@ -223,6 +256,7 @@ export function FormWizard({ schema }: { schema: FormSchema }) {
   return (
     <div className="lg:grid lg:grid-cols-[224px_1fr] lg:gap-10 lg:items-start">
       <nav
+        data-tour="form-progreso"
         aria-label={`Progreso del formulario, sección ${step + 1} de ${schema.sections.length}`}
         className="mb-6 lg:sticky lg:top-16 lg:mb-0"
       >
@@ -353,7 +387,7 @@ export function FormWizard({ schema }: { schema: FormSchema }) {
           detrás de la barra. */}
       <div className="lg:sticky lg:bottom-0 z-30 mt-8 -mx-6 border-t border-neutral-200/80 dark:border-neutral-800/80 bg-white/95 dark:bg-neutral-950/95 px-6 pt-3 pb-3.5 backdrop-blur-md shadow-[0_-12px_24px_-12px_rgba(0,0,0,0.1)]">
         <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-          <label className="flex min-h-6 cursor-pointer items-center gap-2 text-xs text-neutral-600 dark:text-neutral-400">
+          <label data-tour="form-mantener" className="flex min-h-6 cursor-pointer items-center gap-2 text-xs text-neutral-600 dark:text-neutral-400">
             <input
               type="checkbox"
               className="h-3.5 w-3.5 accent-blue-600"
@@ -366,7 +400,7 @@ export function FormWizard({ schema }: { schema: FormSchema }) {
             <span className="hidden text-[11px] text-neutral-400 dark:text-neutral-600 sm:inline">
               Descargue un .json para continuar después, sin depender de este navegador
             </span>
-            <div className="flex items-center gap-0.5">
+            <div data-tour="form-guardar" className="flex items-center gap-0.5">
             <button
               type="button"
               onClick={handleExportJson}
@@ -434,7 +468,7 @@ export function FormWizard({ schema }: { schema: FormSchema }) {
           <span className="hidden font-mono text-[11px] uppercase tracking-widest text-neutral-400 dark:text-neutral-600 sm:inline">
             Sección {step + 1} de {schema.sections.length}
           </span>
-          <div className="flex w-full flex-wrap justify-end gap-2.5 sm:w-auto">
+          <div data-tour="form-navegacion" className="flex w-full flex-wrap justify-end gap-2.5 sm:w-auto">
           {step > 0 && (
             <button
               type="button"
@@ -488,6 +522,7 @@ export function FormWizard({ schema }: { schema: FormSchema }) {
         </div>
       </div>
       </div>
+      <Tour steps={TOUR_STEPS} />
     </div>
   );
 }

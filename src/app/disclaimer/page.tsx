@@ -1,10 +1,21 @@
 import Footer from "@/components/Footer";
 import { SiteHeader } from "@/components/SiteHeader";
+import { Tour } from "@/components/Tour";
+
+const TOUR_STEPS = [
+  {
+    target: "body",
+    placement: "center" as const,
+    title: "Descargo de responsabilidad",
+    content: "Aquí se explican los alcances de uso y límites de PrivataSearch. El buscador, el grafo y los formularios tienen su propio recorrido en el botón ?.",
+  },
+];
 
 export default function DisclaimerPage() {
   return (
     <div className="min-h-screen bg-white dark:bg-neutral-950 flex flex-col">
       <SiteHeader subtitle="Descargo" />
+      <Tour steps={TOUR_STEPS} />
 
       <div className="mx-auto max-w-4xl px-6 py-8 md:py-12 flex-1">
         <h1 className="mb-8 text-3xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-100 md:text-4xl">

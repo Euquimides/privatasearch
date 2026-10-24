@@ -14,8 +14,9 @@ PrivataSearch es un buscador de texto completo e inteligente de resoluciones emi
 - **Filtros avanzados**: período (rango de años), resultado de la resolución, tipo de procedimiento, tema jurídico (descriptores) y número de resultados por página.
 - **Resaltado de coincidencias** para términos de búsqueda y descriptores jurídicos en los resultados.
 - **Grafo de citas 3D** interactivo que visualiza la red de citaciones entre resoluciones, con búsqueda integrada y paneles de detalle.
-- **Página de estadísticas** con métricas del conjunto de datos, distribución temporal, agrupación temática (clustering), y análisis de resultados y recursos, visualizados con Chart.js.
+- **Página de estadísticas** con métricas del conjunto de datos, distribución temporal, agrupación temática (clustering), y análisis de resultados y recursos.
 - **Formularios de inscripción de bases de datos ante PRODHAB** (personas físicas, personas jurídicas y organismos públicos): asistente por secciones con validación, exportación a PDF, Word (DOCX) y Markdown, y guardado/carga del progreso como archivo `.json`. Todo ocurre en el navegador: las respuestas no se envían a ningún servidor y solo se conservan en `sessionStorage` si el usuario activa "mantener mi progreso" (se borran al cerrar la pestaña).
+- **Tour guiado** en cada pantalla (botón "?" de la cabecera) que explica sus controles paso a paso.
 - **Modo oscuro** con persistencia de preferencia del usuario.
 - **Sitio completamente estático** exportado como HTML/CSS/JS: no requiere servidor backend.
 - **Accesibilidad**: skip-links, roles ARIA, y navegación por teclado.
@@ -39,9 +40,14 @@ Requisitos: Node.js 20 o superior (la versión que usa el despliegue). Python 3 
 	npm run dev
 	```
 4. Abre [http://localhost:3000](http://localhost:3000) en tu navegador.
-5. Corre la suite de pruebas (vitest):
+5. Corre las pruebas unitarias (vitest):
 	```bash
 	npm test
+	```
+6. Corre las pruebas end-to-end (Playwright, en `e2e/`):
+	```bash
+	npx playwright install chromium   # solo la primera vez
+	npm run test:e2e
 	```
 
 ## Despliegue en GitHub Pages
@@ -90,6 +96,7 @@ src/
 │   ├── ReaderOverlay.tsx      — Panel lateral de lectura y resoluciones relacionadas (MMR)
 │   ├── CitationGraph.tsx      — Grafo 3D de red de citas (WebGL)
 │   ├── SiteHeader.tsx         — Encabezado del sitio
+│   ├── Tour.tsx               — Tour guiado por pantalla (react-joyride)
 │   ├── DarkModeToggle.tsx     — Toggle de modo oscuro
 │   ├── ErrorBoundary.tsx      — Captura de errores en componentes
 │   ├── Footer.tsx             — Pie de página
@@ -136,16 +143,16 @@ public/
 - [Next.js](https://nextjs.org/) (exportación estática)
 - [React](https://react.dev/)
 - [FlexSearch](https://github.com/nextapps-de/flexsearch)
-- [Chart.js](https://www.chartjs.org/) + [react-chartjs-2](https://react-chartjs-2.js.org/)
 - [3D Force Graph](https://github.com/vasturiano/3d-force-graph) + [Three.js](https://threejs.org/)
 - [TailwindCSS](https://tailwindcss.com/)
 - [Lucide React](https://lucide.dev/)
 - [docx](https://docx.js.org/) y [pdf-lib](https://pdf-lib.js.org/) (exportación de formularios)
-- [Vitest](https://vitest.dev/) (pruebas)
+- [React Joyride](https://react-joyride.com/) (tour guiado)
+- [Vitest](https://vitest.dev/) y [Playwright](https://playwright.dev/) (pruebas)
 
 ## Contribuir
 
-Puedes abrir issues o enviar pull requests (PR) para mejorar el buscador o la interfaz. Para ello haz antes un fork, prueba los cambios respectivos (`npm test`) y envía tu PR.
+Puedes abrir issues o enviar pull requests (PR) para mejorar el buscador o la interfaz. Para ello haz antes un fork, prueba los cambios respectivos (`npm test` y `npm run test:e2e`) y envía tu PR.
 
 ## Licencia
 

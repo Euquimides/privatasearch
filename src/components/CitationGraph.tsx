@@ -12,6 +12,30 @@ import {
 import { useDebounce, useIsDark } from "@/utils/hooks";
 import { Search, X, ChevronRight, ChevronLeft, Eye, ExternalLink } from "lucide-react";
 import Link from "next/link";
+import type { Step } from "react-joyride";
+import { Tour } from "./Tour";
+
+const TOUR_STEPS: Step[] = [
+  {
+    target: "body",
+    placement: "center",
+    title: "Red de citas",
+    content: "Cada punto es una resolución, con aristas representando citaciones. Arrastre para rotar, use la rueda o pellizque para hacer zoom y haga clic en un nodo para ver sus conexiones.",
+  },
+  {
+    target: '[data-tour="grafo-busqueda"]',
+    title: "Busque en el grafo",
+    content: "Escriba un número de resolución o una palabra clave (Ctrl+K). Las coincidencias se resaltan.",
+  },
+  {
+    target: '[data-tour="grafo-leyenda"]',
+    title: "Leyenda",
+    content: "El color indica el resultado de la resolución y el tamaño, cuántas veces la citan.",
+    placement: "top",
+    // Ya está a la vista; desplazar la página hasta ella deja el pie del sitio en pantalla
+    skipScroll: true,
+  },
+];
 
 const NODE_DEFAULT_COLOR = "#6b7280";
 const EDGE_COLOR = "rgba(37, 99, 235, 0.3)";
@@ -482,7 +506,7 @@ export default function CitationGraph() {
       />
 
       {/* --- Barra de búsqueda superpuesta --- */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 w-full max-w-md px-4">
+      <div data-tour="grafo-busqueda" className="absolute top-4 left-1/2 -translate-x-1/2 z-10 w-full max-w-md px-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400 pointer-events-none" />
           <input
@@ -653,7 +677,7 @@ export default function CitationGraph() {
       )}
 
       {/* Leyenda — oculta en móvil, demasiado densa para pantallas pequeñas */}
-      <div className={`absolute bottom-4 left-4 hidden sm:block px-4 py-3 text-xs max-w-[calc(100%-2rem)] ${panelBase}`}>
+      <div data-tour="grafo-leyenda" className={`absolute bottom-4 left-4 hidden sm:block px-4 py-3 text-xs max-w-[calc(100%-2rem)] ${panelBase}`}>
         <p className="text-[11px] font-medium uppercase tracking-widest text-neutral-700 dark:text-neutral-300 mb-2">Resultado</p>
         <div className="flex flex-wrap gap-x-4 gap-y-1">
           {Object.entries(RESULTADO_COLORS).map(([key, color]) => (
@@ -674,6 +698,8 @@ export default function CitationGraph() {
       >
         {graphData.nodes.length} de {allItems.length} resoluciones conectadas · {graphData.links.length} citas entre ellas
       </div>
+
+      <Tour steps={TOUR_STEPS} />
     </div>
   );
 }
