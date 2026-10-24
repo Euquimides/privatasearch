@@ -28,23 +28,23 @@ function tourSteps(searching: boolean, hasResults: boolean): Step[] {
   return [
     {
       target: '[data-tour="buscador-campo"]',
-      title: "Busca resoluciones",
-      content: "Escribe un tema, palabra clave o número de resolución. Pulsa / para saltar aquí; tus búsquedas recientes aparecen al enfocar el campo.",
+      title: "Busque resoluciones",
+      content: "Escriba un tema, palabra clave o número de resolución. Pulse / para saltar aquí; sus búsquedas recientes aparecen al enfocar el campo.",
     },
     {
       target: '[data-tour="buscador-filtros"]',
-      title: "Filtra los resultados",
+      title: "Filtre los resultados",
       content: searching
-        ? "Acota por años, temas jurídicos, resultado o tipo de procedimiento, y ajusta cuántos resultados ver."
-        : "Acota por años, resultado o tipo de procedimiento, y ajusta cuántos resultados ver. Al buscar aparecen también los temas jurídicos.",
+        ? "Acote por años, temas jurídicos, resultado o tipo de procedimiento, y ajuste cuántos resultados ver."
+        : "Acote por años, resultado o tipo de procedimiento, y ajuste cuántos resultados ver. Al buscar aparecen también los temas jurídicos.",
       placement: "right",
     },
     {
       target: '[data-tour="buscador-resultados"]',
-      title: hasResults ? "Abre una resolución" : "Aquí verás los resultados",
+      title: hasResults ? "Abra una resolución" : "Aquí verás los resultados",
       content: hasResults
         ? "Pulse cualquier resultado para leerla completa. Dentro del lector, el botón ? explica sus herramientas."
-        : "Los resultados de tu búsqueda aparecen aquí; pulsa cualquiera para leerla completa. Dentro del lector, el botón ? explica sus herramientas.",
+        : "Los resultados de su búsqueda aparecen aquí; pulse cualquiera para leerla completa. Dentro del lector, el botón ? explica sus herramientas.",
       placement: "top",
     },
   ];

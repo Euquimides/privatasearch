@@ -24,7 +24,7 @@ test('el tour no arranca solo, solo con "?"', async ({ page }) => {
     await expect(page.getByLabel('Buscar resoluciones')).toBeVisible();
     await expect(tooltip(page)).toHaveCount(0);
     await page.getByRole('button', { name: 'Ver tutorial' }).click();
-    expect(await recorrer(page)).toContain('Busca resoluciones');
+    expect(await recorrer(page)).toContain('Busque resoluciones');
 });
 
 test('Esc cierra el tour y el "?" lo reinicia desde el primer paso', async ({ page }) => {
@@ -34,7 +34,7 @@ test('Esc cierra el tour y el "?" lo reinicia desde el primer paso', async ({ pa
     await page.keyboard.press('Escape');
     await expect(tooltip(page)).toHaveCount(0);
     await page.getByRole('button', { name: 'Ver tutorial' }).click();
-    await expect(tooltip(page)).toContainText('Busca resoluciones');
+    await expect(tooltip(page)).toContainText('Busque resoluciones');
 });
 
 test('tour del lector, sin cerrar el lector con Esc', async ({ page }) => {
@@ -56,7 +56,7 @@ test('tour del grafo', async ({ page }) => {
     await page.goto('/grafo/');
     await expect(page.getByLabel('Buscar resoluciones en el grafo')).toBeVisible({ timeout: 30_000 });
     await page.getByRole('button', { name: 'Ver tutorial' }).click();
-    expect(await recorrer(page)).toContain('Busca en el grafo');
+    expect(await recorrer(page)).toContain('Busque en el grafo');
 });
 
 test('tour de los formularios', async ({ page }) => {

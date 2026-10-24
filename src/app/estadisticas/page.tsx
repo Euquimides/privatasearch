@@ -4,6 +4,8 @@ import { useEffect, useState, useCallback } from "react";
 import Footer from "@/components/Footer";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Tour } from "@/components/Tour";
+import { DatasetStatistics } from "@/utils/statisticsCalculator";
+import { RESULTADO_COLORS, RESULTADO_LABELS, ResultadoType } from "@/context/SearchContext";
 
 const TOUR_STEPS = [
   {
@@ -13,8 +15,6 @@ const TOUR_STEPS = [
     content: "Un panorama general de las resoluciones: temas, grupos, resoluciones por año y cómo se resuelven. El buscador, el grafo y los formularios tienen su propio recorrido en el botón ?.",
   },
 ];
-import { DatasetStatistics } from "@/utils/statisticsCalculator";
-import { RESULTADO_COLORS, RESULTADO_LABELS, ResultadoType } from "@/context/SearchContext";
 
 // Colores por rango de tamaño del grupo (no por id: los ids cambian al regenerar las estadísticas)
 const GROUP_COLORS = ["#2563eb", "#ea580c", "#0d9488", "#9333ea", "#db2777", "#ca8a04", "#64748b", "#94a3b8"];

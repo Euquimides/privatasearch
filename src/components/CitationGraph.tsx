@@ -20,12 +20,12 @@ const TOUR_STEPS: Step[] = [
     target: "body",
     placement: "center",
     title: "Red de citas",
-    content: "Cada punto es una resolución, con aristas representando citaciones. Arrastre para rotar, use la rueda o amplie para hacer zoom y haga click en un nodo para ver sus conexiones.",
+    content: "Cada punto es una resolución, con aristas representando citaciones. Arrastre para rotar, use la rueda o pellizque para hacer zoom y haga clic en un nodo para ver sus conexiones.",
   },
   {
     target: '[data-tour="grafo-busqueda"]',
-    title: "Busca en el grafo",
-    content: "Escribe un número de resolución o una palabra clave (Ctrl+K). Las coincidencias se resaltan.",
+    title: "Busque en el grafo",
+    content: "Escriba un número de resolución o una palabra clave (Ctrl+K). Las coincidencias se resaltan.",
   },
   {
     target: '[data-tour="grafo-leyenda"]',

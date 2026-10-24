@@ -27,17 +27,17 @@ const TOUR_STEPS: Step[] = [
   {
     target: visible("lector-acciones"),
     title: "Citar y compartir",
-    content: "Copia la cita en formato costarricense o el enlace directo, ve la resolución en la red de citas o abre el PDF original.",
+    content: "Copie la cita en formato costarricense o el enlace directo, vea la resolución en la red de citas o abra el PDF original.",
   },
   {
     target: '[data-tour="lector-temas"]',
     title: "Temas jurídicos",
-    content: "Pulsa un tema para filtrar el buscador por él.",
+    content: "Pulse un tema para filtrar el buscador por él.",
   },
   {
     target: '[data-tour="lector-citadas"]',
     title: "Resoluciones citadas",
-    content: "Abre las resoluciones que esta cita. Las de borde punteado no están en el índice.",
+    content: "Abra las resoluciones que esta cita. Las de borde punteado no están en el índice.",
   },
   {
     target: '[data-tour="lector-relacionadas"]',
@@ -47,7 +47,7 @@ const TOUR_STEPS: Step[] = [
   {
     target: '[data-tour="lector-cerrar"]',
     title: "Volver al buscador",
-    content: "Cierra el lector con este botón o con Esc.",
+    content: "Cierre el lector con este botón o con Esc.",
   },
 ];
 
