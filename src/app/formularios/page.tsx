@@ -5,6 +5,20 @@ import { PrivacyNotice } from "@/components/formularios/PrivacyNotice";
 import { organismosPublicosSchema } from "@/schemas/organismos-publicos.schema";
 import { personasFisicasSchema } from "@/schemas/personas-fisicas.schema";
 import { personasJuridicasSchema } from "@/schemas/personas-juridicas.schema";
+import { Tour } from "@/components/Tour";
+
+const TOUR_STEPS = [
+  {
+    target: '[data-tour="form-privacidad"]',
+    title: "Sus datos no salen del navegador",
+    content: "Los formularios se completan y exportan aquí mismo; PrivataSearch no envía ni guarda sus respuestas.",
+  },
+  {
+    target: '[data-tour="form-tipos"]',
+    title: "Elija su formulario",
+    content: "Según quién inscribe la base de datos: persona física, persona jurídica u organismo público. Dentro del formulario, el botón ? explica cada herramienta.",
+  },
+];
 
 const FORM_TYPES = [
   {
@@ -67,7 +81,7 @@ export default function FormulariosPage() {
       <div className="mx-auto max-w-4xl px-6 pb-12 flex-1">
         <PrivacyNotice />
 
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div data-tour="form-tipos" className="grid gap-4 sm:grid-cols-3">
           {FORM_TYPES.map((form, index) => (
             <Link
               key={form.href}
@@ -118,6 +132,7 @@ export default function FormulariosPage() {
         </div>
       </div>
       <Footer />
+      <Tour steps={TOUR_STEPS} />
     </div>
   );
 }

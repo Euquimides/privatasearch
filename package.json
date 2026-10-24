@@ -1,6 +1,6 @@
 {
   "name": "privatasearch",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Buscador de jurisprudencia sobre protección de datos personales de Costa Rica.",
   "private": true,
   "scripts": {
@@ -19,7 +19,8 @@
     "pdf-lib": "^1.17.1",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "react-force-graph-3d": "^1.29.1"
+    "react-force-graph-3d": "^1.29.1",
+    "react-joyride": "^3.2.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

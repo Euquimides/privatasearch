@@ -8,11 +8,48 @@ import { ResultadoBadge } from "./SearchResults";
 import { findMostSimilar } from "@/utils/semanticSimilarity";
 import { highlightText, buildQueryPatterns } from "@/utils/highlightText";
 import { formatCitaCR, fmtFecha, parseResolutionText, splitIntoParagraphs, tieneDato } from "@/utils/formatters";
+import type { Step } from "react-joyride";
+import { Tour, TourButton, visible } from "./Tour";
 
 const BAR_BUTTON =
   "inline-flex items-center justify-center gap-1.5 border border-neutral-200/80 bg-white rounded-lg px-3 min-h-11 min-w-11 sm:min-h-9 sm:min-w-9 text-xs font-medium text-neutral-600 hover:border-blue-400 hover:text-blue-600 dark:border-neutral-700/80 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:text-blue-400 transition-colors";
 const COPIED = "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300";
 const SECTION_LABEL = "text-[11px] font-semibold uppercase tracking-widest text-neutral-500 dark:text-neutral-400";
+
+// Evento propio: el "?" de la cabecera queda tapado por el lector
+const TOUR_EVENT_LECTOR = "ps-tour-lector";
+const TOUR_STEPS: Step[] = [
+  {
+    target: "#reader-title",
+    title: "La resolución",
+    content: "Título, número, expediente, fecha y denunciado. Debajo está el texto completo, dividido por secciones.",
+  },
+  {
+    target: visible("lector-acciones"),
+    title: "Citar y compartir",
+    content: "Copia la cita en formato costarricense o el enlace directo, ve la resolución en la red de citas o abre el PDF original.",
+  },
+  {
+    target: '[data-tour="lector-temas"]',
+    title: "Temas jurídicos",
+    content: "Pulsa un tema para filtrar el buscador por él.",
+  },
+  {
+    target: '[data-tour="lector-citadas"]',
+    title: "Resoluciones citadas",
+    content: "Abre las resoluciones que esta cita. Las de borde punteado no están en el índice.",
+  },
+  {
+    target: '[data-tour="lector-relacionadas"]',
+    title: "Resoluciones relacionadas",
+    content: "Resoluciones con contenido parecido, ordenadas por similitud.",
+  },
+  {
+    target: '[data-tour="lector-cerrar"]',
+    title: "Volver al buscador",
+    content: "Cierra el lector con este botón o con Esc.",
+  },
+];
 
 /** Encabezado de sección: rótulo + filete que ocupa el resto de la línea. */
 function SectionHead({ children }: { children: React.ReactNode }) {
@@ -219,6 +256,7 @@ export function ReaderOverlay({
         <div className="sticky top-0 z-10 flex items-center gap-2 px-3 sm:px-5 h-16 sm:h-auto sm:py-3 border-b border-neutral-200 dark:border-neutral-800 bg-white/90 dark:bg-neutral-950/90 backdrop-blur-md">
           <button
             ref={closeButtonRef}
+            data-tour="lector-cerrar"
             onClick={onClose}
             className="w-11 h-11 sm:w-9 sm:h-9 grid place-items-center border border-neutral-200/80 dark:border-neutral-700/80 rounded-lg bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-400 hover:text-blue-600 hover:border-blue-400 transition-colors"
             aria-label="Cerrar"
@@ -229,7 +267,8 @@ export function ReaderOverlay({
             {item.metadatos?.resolucion ?? item.metadatos?.expediente ?? ""}
           </span>
           {/* Escritorio: las acciones caben en la barra; en móvil van dentro del texto */}
-          <div className="hidden sm:flex items-center gap-2">{acciones}</div>
+          <div data-tour="lector-acciones" className="hidden sm:flex items-center gap-2">{acciones}</div>
+          <TourButton event={TOUR_EVENT_LECTOR} />
         </div>
 
         {/* Contenido */}
@@ -268,7 +307,7 @@ export function ReaderOverlay({
           )}
 
           {/* Móvil: las acciones acompañan a la ficha, sin una segunda barra fija */}
-          <div className="flex sm:hidden flex-wrap justify-center gap-2 mt-5">{acciones}</div>
+          <div data-tour="lector-acciones" className="flex sm:hidden flex-wrap justify-center gap-2 mt-5">{acciones}</div>
 
           {/* Secciones legales procesadas */}
           <div className="mt-9">
@@ -292,7 +331,7 @@ export function ReaderOverlay({
 
           {/* Sección: Temas */}
           {item.descriptores && item.descriptores.length > 0 && (
-            <div className="mb-8">
+            <div data-tour="lector-temas" className="mb-8">
               <SectionHead>Temas jurídicos</SectionHead>
               <div className="flex flex-wrap gap-2">
                 {item.descriptores.map((d) => (
@@ -311,7 +350,7 @@ export function ReaderOverlay({
 
           {/* Sección: Resoluciones citadas */}
           {item.metadatos?.resoluciones_citadas && item.metadatos.resoluciones_citadas.length > 0 && (
-            <div className="mb-8">
+            <div data-tour="lector-citadas" className="mb-8">
               <SectionHead>Resoluciones citadas</SectionHead>
               <div className="flex flex-wrap gap-2">
                 {item.metadatos.resoluciones_citadas.map((r) => {
@@ -344,7 +383,7 @@ export function ReaderOverlay({
 
           {/* Sección: Relacionadas */}
           {related.length > 0 && (
-            <div className="mb-8">
+            <div data-tour="lector-relacionadas" className="mb-8">
               <SectionHead>Resoluciones relacionadas</SectionHead>
               <div className="space-y-2.5">
                 {related.map((r) => (
@@ -378,6 +417,7 @@ export function ReaderOverlay({
           )}
         </div>
       </div>
+      <Tour steps={TOUR_STEPS} event={TOUR_EVENT_LECTOR} />
     </div>,
     document.body,
   );

@@ -3,6 +3,16 @@
 import { useEffect, useState, useCallback } from "react";
 import Footer from "@/components/Footer";
 import { SiteHeader } from "@/components/SiteHeader";
+import { Tour } from "@/components/Tour";
+
+const TOUR_STEPS = [
+  {
+    target: "body",
+    placement: "center" as const,
+    title: "Estadísticas del corpus",
+    content: "Un panorama general de las resoluciones: temas, grupos, resoluciones por año y cómo se resuelven. El buscador, el grafo y los formularios tienen su propio recorrido en el botón ?.",
+  },
+];
 import { DatasetStatistics } from "@/utils/statisticsCalculator";
 import { RESULTADO_COLORS, RESULTADO_LABELS, ResultadoType } from "@/context/SearchContext";
 
@@ -113,6 +123,7 @@ export default function EstadisticasPage() {
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 flex flex-col">
       <SiteHeader subtitle="Estadísticas" />
+      <Tour steps={TOUR_STEPS} />
       <main className="mx-auto max-w-6xl px-4 sm:px-6 py-8 sm:py-12 flex-1 w-full flex flex-col gap-12 sm:gap-14">
         {/* Encabezado + cifras clave */}
         <section className="flex flex-col gap-7">

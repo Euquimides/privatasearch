@@ -12,6 +12,7 @@ html {
   --foreground: oklch(0.20 0.008 250);
   --primary: oklch(0.55 0.14 250);
   --slider-track-empty: oklch(0.92 0.005 250);
+  --tour-bg: var(--color-white); /* flecha del tooltip del tutorial */
 
   --ease-out: cubic-bezier(0.25, 1, 0.5, 1);
 }
@@ -27,6 +28,7 @@ html {
   --foreground: oklch(0.90 0.005 250);
 
   --slider-track-empty: oklch(0.28 0.006 250);
+  --tour-bg: var(--color-neutral-900);
 }
 
 /* Los controles nativos (select, checkbox, radio, date) heredan el tema oscuro del SO */
@@ -35,6 +37,12 @@ html {
 .dark input[type="radio"],
 .dark input[type="date"] {
   color-scheme: dark;
+}
+
+/* Tutorial: en oscuro el velo negro apenas oscurece la página, así que el
+   elemento destacado se marca con un anillo azul (el contorno del spotlight). */
+.dark .react-joyride__spotlight path[fill="none"] {
+  stroke: var(--color-blue-500);
 }
 
 body {

@@ -1,6 +1,6 @@
 export function PrivacyNotice() {
   return (
-    <p className="mb-6 flex items-start gap-2 rounded-xl border border-blue-200/80 dark:border-blue-900/80 bg-blue-50 dark:bg-blue-950/40 px-4 py-3 text-sm text-blue-900 dark:text-blue-200">
+    <p data-tour="form-privacidad" className="mb-6 flex items-start gap-2 rounded-xl border border-blue-200/80 dark:border-blue-900/80 bg-blue-50 dark:bg-blue-950/40 px-4 py-3 text-sm text-blue-900 dark:text-blue-200">
       <svg
         aria-hidden="true"
         viewBox="0 0 20 20"
